@@ -23,6 +23,6 @@ Bagikan alamatnya ke rekan guru. Mereka memasangnya dengan cara yang sama.
 Tinjauan Google bisa memakan waktu beberapa hari.
 
 ## Catatan
-- Kunci API Gemini atau OpenAI diisi oleh tiap pengguna di dalam aplikasi, tidak ikut tertanam di berkas.
+- Mode "Tanpa kunci API" tersedia untuk yang tidak punya kunci. Kunci API Gemini atau OpenAI diisi oleh tiap pengguna di dalam aplikasi, tidak ikut tertanam di berkas.
 - Pembuatan RPP otomatis butuh internet. Formulir, pratinjau, dan unduhan Word tetap bisa dipakai setelah aplikasi pernah dibuka.
 - Ganti isi berkas index.html bila ada pembaruan. Pengguna menerima versi baru saat membuka aplikasi dengan internet.

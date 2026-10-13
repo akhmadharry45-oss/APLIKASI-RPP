@@ -158,6 +158,17 @@ select{width:100%;border:1px solid var(--line);background:var(--surface);border-
           <label class="chk"><input type="checkbox" id="remember"><span>Ingat kunci API di perangkat ini. Jangan centang di komputer bersama.</span></label>
           <p class="hint">Kunci dan foto dikirim langsung dari peramban Anda ke penyedia AI, tidak lewat server lain. Nama model bisa berubah, ganti sesuai yang tersedia di akun Anda.</p>
         </div>
+        <div id="opt-manual" style="display:flex;flex-direction:column;gap:12px" hidden>
+          <ol class="sub" style="margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:2px">
+            <li>Isi catatan topik atau teks referensi di bawah (opsional), lalu tekan "Salin perintah untuk AI".</li>
+            <li>Buka chatbot yang Anda punya (Gemini, ChatGPT, atau Claude), tempel perintahnya, lampirkan foto materi, lalu kirim.</li>
+            <li>Salin jawaban AI, tempel di kotak "Jawaban dari AI", lalu tekan "Isi formulir dari jawaban".</li>
+          </ol>
+          <div class="row"><button type="button" class="btn" id="btn-copy">Salin perintah untuk AI</button></div>
+          <textarea id="promptbox" rows="6" readonly hidden aria-label="Perintah untuk AI"></textarea>
+          <div class="field"><label for="paste">Jawaban dari AI</label><textarea id="paste" rows="5" placeholder="Tempel jawaban AI di sini. Bentuknya teks JSON yang diawali tanda {"></textarea></div>
+          <div class="row"><button type="button" class="btn primary" id="btn-apply">Isi formulir dari jawaban</button></div>
+        </div>
         <div id="drop-wrap" hidden>
           <label class="drop" id="drop" for="file-in">
             <strong>Tarik foto ke sini atau pilih berkas</strong>
@@ -610,7 +621,7 @@ REFERENSI TAMBAHAN DARI GURU (teks dari sumber lain, pakai bila relevan):
 ${($('#referensi').value || '').trim().slice(0, 12000) || '(tidak ada)'}
 ${(PROV() === 'gemini' && $('#websearch').checked) ? '\nPENCARIAN INTERNET: gunakan pencarian untuk memeriksa rujukan resmi (misalnya Capaian Pembelajaran dari Kemendikdasmen/BSKAP dan buku teks resmi) lalu sesuaikan CP, TP, dan materi. Tulis sumber yang dipakai di "catatan".\n' : ''}
 
-GAMBAR TERLAMPIR: ${imgs.length ? imgs.length + ' gambar (halaman buku, CP, TP, ATP, modul ajar, atau catatan)' : 'tidak ada'}
+GAMBAR TERLAMPIR: ${PROV() === 'manual' ? 'periksa lampiran pada pesan ini bila ada (halaman buku, CP, TP, ATP, modul ajar, atau catatan)' : (imgs.length ? imgs.length + ' gambar (halaman buku, CP, TP, ATP, modul ajar, atau catatan)' : 'tidak ada')}
 
 ATURAN:
 1. Tulis dalam bahasa Indonesia baku yang sesuai jenjang dan kelas.
@@ -672,7 +683,7 @@ async function generate() {
 
 /* ---------- other AI providers (standalone) ---------- */
 const PROV = () => { const el = $('#prov'); return el ? el.value : 'claude'; };
-const DEF = { gemini: 'gemini-2.5-flash', openai: 'gpt-4o-mini' };
+const DEF = { gemini: 'gemini-3.8-flash', openai: 'gpt-4o-mini' };
 const EXT_LIMITS = { mediaTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], maxCount: 8, maxInputBytes: 20 * 1024 * 1024 };
 function shrink(file) {
   return new Promise((res, rej) => {
@@ -723,12 +734,31 @@ async function callExternal(prompt, files, signal) {
   const data = await r.json().catch(() => null);
   if (!r.ok) {
     const m = data && data.error ? (data.error.message || JSON.stringify(data.error)) : '';
-    throw { code: 'ext', message: 'Layanan AI menolak permintaan (' + r.status + ')' + (m ? ': ' + String(m).slice(0, 220) : '.') };
+    throw { code: 'ext', message: 'Layanan AI menolak permintaan (' + r.status + ')' + (m ? ': ' + String(m).slice(0, 300) : '.') + (r.status === 404 ? ' Ganti isi kolom Nama model sesuai petunjuk pada pesan di atas.' : '') };
   }
   const text = p === 'gemini'
     ? ((data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || []).map(x => x.text || '').join('')
     : (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content);
   return parseLoose(text);
+}
+
+function applyPasted() {
+  const raw = $('#paste').value.trim();
+  if (!raw) { aimsg('Tempel jawaban dari AI terlebih dahulu.', 'err'); return; }
+  let out; try { out = parseLoose(raw); } catch (e) { aimsg('Jawaban belum berbentuk JSON yang utuh. Minta AI mengirim ulang hanya objek JSON-nya, lalu tempel lagi.', 'err'); return; }
+  if (!out || typeof out !== 'object' || Array.isArray(out)) { aimsg('Jawaban itu bukan objek JSON RPP.', 'err'); return; }
+  const n = normalize(out);
+  for (const k of ['sekolah', 'guru', 'mapel', 'kelas', 'alokasi']) if (state[k].trim()) n[k] = state[k];
+  prevState = state; state = n; state._contoh = false;
+  fillForm(); save(); $('#btn-undo').hidden = false;
+  const cat = str(out.catatan);
+  aimsg('RPP sudah diisi dari jawaban AI. Periksa tiap bagian, lalu buka Pratinjau atau unduh.' + (cat ? ' Catatan AI: ' + cat : ''), 'ok');
+}
+async function copyPrompt() {
+  const text = buildPrompt($('#catatan').value.trim());
+  const box = $('#promptbox');
+  try { await navigator.clipboard.writeText(text); box.hidden = true; aimsg('Perintah disalin. Tempel di chatbot dan lampirkan foto bila ada.', 'ok'); }
+  catch (e) { box.value = text; box.hidden = false; box.focus(); box.select(); aimsg('Salin otomatis tidak diizinkan. Teks perintah sudah dipilih: tekan Ctrl+C lalu tempel di chatbot.', 'err'); }
 }
 
 /* ---------- wiring ---------- */
@@ -785,20 +815,22 @@ function init() {
   cfg.model = cfg.model || {};
   let claudeLimits = null, lastProv = null;
   const saveCfg = () => {
-    const p = PROV(); if (p !== 'claude') cfg.model[p] = $('#model').value;
+    const p = PROV(); if (p === 'gemini' || p === 'openai') cfg.model[p] = $('#model').value;
     cfg.prov = p; cfg.base = $('#baseurl').value; cfg.search = $('#websearch').checked; cfg.remember = $('#remember').checked;
     cfg.key = cfg.remember ? $('#apikey').value : '';
     try { localStorage.setItem(CFG, JSON.stringify(cfg)); } catch (e) { /* ignore */ }
   };
   function applyProv() {
     const p = PROV();
-    if (lastProv && lastProv !== 'claude') cfg.model[lastProv] = $('#model').value;
+    if (lastProv === 'gemini' || lastProv === 'openai') cfg.model[lastProv] = $('#model').value;
     lastProv = p;
-    $('#opt-ext').hidden = p === 'claude'; $('#opt-base').hidden = p !== 'openai'; $('#opt-search').hidden = p !== 'gemini';
-    if (p !== 'claude') $('#model').value = cfg.model[p] || DEF[p];
+    const ext = p === 'gemini' || p === 'openai';
+    $('#opt-ext').hidden = !ext; $('#opt-base').hidden = p !== 'openai'; $('#opt-search').hidden = p !== 'gemini';
+    $('#opt-manual').hidden = p !== 'manual'; $('#btn-gen').hidden = p === 'manual';
+    if (ext) { const sv = cfg.model[p]; $('#model').value = (sv && sv !== 'gemini-2.5-flash') ? sv : DEF[p]; }
     imgLimits = (p === 'claude' && claudeLimits) ? claudeLimits : EXT_LIMITS;
     fi.accept = imgLimits.mediaTypes.join(',');
-    $('#drop-wrap').hidden = false;
+    $('#drop-wrap').hidden = (p === 'manual');
     $('#drop-hint').textContent = 'JPG, PNG, WebP, atau GIF. Sampai ' + imgLimits.maxCount + ' foto, satu halaman per foto.';
     saveCfg();
   }
@@ -806,10 +838,12 @@ function init() {
   ['#apikey', '#model', '#baseurl', '#websearch', '#remember'].forEach(s => $(s).addEventListener('change', saveCfg));
   $('#prov').addEventListener('change', applyProv);
 
+  $('#btn-copy').addEventListener('click', copyPrompt);
+  $('#btn-apply').addEventListener('click', applyPasted);
   const fill = () => {
     const opts = [];
     if (sampleFn) opts.push(['claude', 'Claude (di dalam aplikasi Claude)']);
-    opts.push(['gemini', 'Google Gemini (bisa mencari referensi di internet)'], ['openai', 'OpenAI atau layanan yang kompatibel']);
+    opts.push(['manual', 'Tanpa kunci API: salin perintah ke chatbot, lalu tempel hasilnya'], ['gemini', 'Google Gemini (bisa mencari referensi di internet)'], ['openai', 'OpenAI atau layanan yang kompatibel']);
     $('#prov').innerHTML = opts.map(([v, l]) => '<option value="' + v + '">' + l + '</option>').join('');
     $('#prov').value = opts.some(o => o[0] === cfg.prov) ? cfg.prov : opts[0][0];
     applyProv();
