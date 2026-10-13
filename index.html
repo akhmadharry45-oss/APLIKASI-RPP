@@ -1,0 +1,829 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Penyusun RPP Mendalam</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0E6470"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="RPP Mendalam">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: sticky bar (name, Susun/Pratinjau tabs, download) over one centered column of forms; preview is a paper sheet. */
+:root{
+  --bg:#F3F6F6; --surface:#FFFFFF; --surface-2:#E8EFF0; --ink:#14262B; --muted:#55686E; --line:#D0DBDE;
+  --accent:#0E6470; --accent-ink:#FFFFFF; --accent-soft:#DCEEF0; --focus:#0E6470; --ok:#1B7448; --err:#B3261E;
+  --paper:#FFFFFF; --paper-ink:#1B1B1B; --paper-line:#98A4A7; --paper-head:#0E5C66; --paper-label:#EEF3F4; --paper-light:#DDEBED;
+  --font-display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-body:'Source Sans 3',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1517; --surface:#162124; --surface-2:#1E2D31; --ink:#E5EEF0; --muted:#9DB0B5; --line:#2D3E43;
+  --accent:#5FC4D0; --accent-ink:#06262B; --accent-soft:#143338; --focus:#5FC4D0; --ok:#5BC48A; --err:#FF8A80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1517; --surface:#162124; --surface-2:#1E2D31; --ink:#E5EEF0; --muted:#9DB0B5; --line:#2D3E43;
+  --accent:#5FC4D0; --accent-ink:#06262B; --accent-soft:#143338; --focus:#5FC4D0; --ok:#5BC48A; --err:#FF8A80; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:0;min-height:100%}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.2}
+p{margin:0}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-16px;padding:12px 16px}
+.bar-in{max-width:900px;margin-inline:auto;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.brand{flex:1 1 220px;min-width:0}
+.brand h1{font-size:1.25rem;font-weight:700}
+.brand p{font-size:.85rem;color:var(--muted)}
+.tabs{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.tabs button{border:0;background:transparent;padding:.45rem .95rem;cursor:pointer;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:.5rem .9rem;cursor:pointer;font-weight:600}
+.btn:hover{background:var(--surface-2)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.small{padding:.3rem .65rem;font-size:.875rem}
+.status{flex-basis:100%;font-size:.875rem;min-height:1.3em;color:var(--muted)}
+.status.ok{color:var(--ok)} .status.err{color:var(--err)}
+
+.wrap{max-width:900px;margin-inline:auto;padding-block:20px 56px;display:flex;flex-direction:column;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card>h2{font-size:1.05rem}
+.sub{font-size:.9rem;color:var(--muted)}
+.notice{background:var(--surface-2);border-radius:8px;padding:12px 14px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;font-size:.92rem}
+.notice p{flex:1 1 260px;min-width:0}
+
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>label,.lbl{font-weight:600;font-size:.92rem}
+.hint{font-size:.82rem;color:var(--muted)}
+input[type=text],textarea{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:.5rem .65rem;line-height:1.5;resize:vertical}
+textarea{overflow:hidden}
+.stage{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--line)}
+.stage:first-of-type{border-top:0;padding-top:0}
+.stage h3{font-size:.98rem}
+.chips{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.chip{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem;cursor:pointer;background:var(--surface)}
+.chip:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.chip input{margin-top:.3rem;accent-color:var(--accent)}
+.chip b{font-family:var(--font-mono);font-weight:500;font-size:.8rem;color:var(--accent);margin-right:6px}
+
+/* the one emphasized block: Claude generation */
+.ai{background:var(--accent-soft);border-color:var(--accent)}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;border:2px dashed var(--accent);border-radius:10px;padding:20px 14px;cursor:pointer;background:var(--surface)}
+.drop.over{background:var(--surface-2)}
+.drop strong{font-family:var(--font-display)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.drop:has(.sr:focus-visible){outline:2px solid var(--focus);outline-offset:2px}
+.thumbs{display:flex;flex-wrap:wrap;gap:10px}
+.thumb{position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;cursor:pointer;line-height:1;font-size:15px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.progress{font-family:var(--font-mono);font-size:.82rem;color:var(--muted)}
+.aimsg{font-size:.92rem}
+.aimsg.err{color:var(--err)}
+.aimsg.ok{color:var(--ok)}
+
+.tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+.rt{border-collapse:collapse;width:100%;min-width:780px}
+.rt th,.rt td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:6px;vertical-align:top;text-align:left}
+.rt th{background:var(--surface-2);font-size:.85rem;padding:8px 6px}
+.rt tr>*:last-child{border-right:0}
+.rt tbody tr:last-child td{border-bottom:0}
+.rt textarea{font-size:.9rem;min-height:5.2em}
+.ket{display:grid;gap:4px;font-size:.88rem;color:var(--muted)}
+
+/* preview sheet: stays a white page in both themes */
+.paper{background:var(--paper);color:var(--paper-ink);font-family:Arial,'Liberation Sans',Helvetica,sans-serif;font-size:13px;line-height:1.5;border:1px solid var(--line);border-radius:4px;padding:28px clamp(14px,4vw,40px);overflow-x:auto}
+.paper h1{font-family:inherit;font-size:16px;text-align:center;margin-bottom:14px;color:var(--paper-ink)}
+.paper table{border-collapse:collapse;width:100%;margin-bottom:12px}
+.paper td,.paper th{border:1px solid var(--paper-line);padding:5px 8px;vertical-align:top;text-align:left}
+.paper .info td{border:0;padding:1px 6px 1px 0}
+.paper .info td:first-child{width:150px;font-weight:700}
+.paper .info td:nth-child(2){width:14px}
+.paper th.hd{background:var(--paper-head);color:#fff;font-weight:700;letter-spacing:.02em}
+.paper td.lb{background:var(--paper-label);font-weight:700;width:28%}
+.paper th.lt{background:var(--paper-light)}
+.paper p{margin:0 0 3px}
+.paper .li{display:flex;gap:6px;margin:0 0 3px}
+.paper .li>span:first-child{flex:0 0 auto}
+.paper .li.st{margin-left:14px}
+.paper .bar2{background:var(--paper-head);color:#fff;font-weight:700;padding:5px 8px;margin:6px 0 8px}
+.paper h4{font-size:13px;margin:10px 0 4px;font-family:inherit}
+.paper .rub td{min-width:110px}
+.paper .nt{font-size:12px}
+
+.credit{max-width:900px;margin-inline:auto;padding-block:0 28px;text-align:center;font-size:.85rem;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.btn,.chip{transition:background .15s,border-color .15s}}
+@media (max-width:520px){.card{padding:14px}}
+[hidden]{display:none!important}
+body{margin:0}
+select{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:.5rem .65rem;line-height:1.5}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:.92rem}
+.chk input{margin-top:.3rem;accent-color:var(--accent)}
+</style></head><body>
+
+<header class="bar"><div class="bar-in">
+  <div class="brand"><h1>Penyusun RPP Mendalam</h1><p>Design by Akhmad Fitra Harry, S.Pd</p></div>
+  <div class="tabs" role="tablist" aria-label="Tampilan">
+    <button type="button" role="tab" id="tab-susun" aria-selected="true" aria-controls="pane-susun">Susun</button>
+    <button type="button" role="tab" id="tab-preview" aria-selected="false" aria-controls="pane-preview">Pratinjau</button>
+  </div>
+  <button type="button" class="btn primary" id="btn-docx" disabled>Unduh Word (.docx)</button>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+</div></header>
+
+<main class="wrap">
+  <section id="pane-susun" role="tabpanel" aria-labelledby="tab-susun" style="display:flex;flex-direction:column;gap:18px">
+
+    <div class="notice" id="sample-note" hidden>
+      <p>Isian di bawah adalah contoh dari RPP SD Negeri 1 Barabai Timur yang Anda lampirkan. Kosongkan untuk mulai dari nol, atau unggah foto materi dan minta Claude menyusunnya.</p>
+      <button type="button" class="btn small" id="btn-blank">Kosongkan formulir</button>
+    </div>
+
+    <div class="card">
+      <h2>Identitas</h2>
+      <div class="grid" id="grp-identitas"></div>
+    </div>
+
+    <div class="card ai" id="ai-card">
+      <h2>Buat otomatis dengan AI</h2>
+      <p class="sub">Unggah foto halaman buku, CP, TP, atau modul ajar. AI membaca tulisannya lalu mengisi semua bagian RPP di bawah. Hasilnya tetap bisa Anda ubah.</p>
+      <div id="ai-body" style="display:flex;flex-direction:column;gap:12px">
+        <div class="field"><label for="prov">Mesin AI</label><select id="prov"></select></div>
+        <div id="opt-ext" style="display:flex;flex-direction:column;gap:12px" hidden>
+          <div class="grid">
+            <div class="field"><label for="apikey">Kunci API</label><input id="apikey" type="password" autocomplete="off" spellcheck="false"></div>
+            <div class="field"><label for="model">Nama model</label><input id="model" type="text" autocomplete="off" spellcheck="false"></div>
+          </div>
+          <div class="field" id="opt-base" hidden><label for="baseurl">Alamat layanan</label><input id="baseurl" type="text" autocomplete="off" spellcheck="false" placeholder="https://api.openai.com/v1"><p class="hint">Isi alamat lain bila memakai layanan yang kompatibel dengan OpenAI.</p></div>
+          <label class="chk" id="opt-search" hidden><input type="checkbox" id="websearch" checked><span>Cari referensi di internet (Google Search) agar CP, TP, dan materi lebih akurat</span></label>
+          <label class="chk"><input type="checkbox" id="remember"><span>Ingat kunci API di perangkat ini. Jangan centang di komputer bersama.</span></label>
+          <p class="hint">Kunci dan foto dikirim langsung dari peramban Anda ke penyedia AI, tidak lewat server lain. Nama model bisa berubah, ganti sesuai yang tersedia di akun Anda.</p>
+        </div>
+        <div id="drop-wrap" hidden>
+          <label class="drop" id="drop" for="file-in">
+            <strong>Tarik foto ke sini atau pilih berkas</strong>
+            <span class="sub" id="drop-hint">JPG, PNG, WebP, atau GIF</span>
+            <input class="sr" type="file" id="file-in" multiple>
+          </label>
+        </div>
+        <div class="thumbs" id="thumbs"></div>
+        <div class="field">
+          <label for="referensi">Teks referensi dari sumber lain (opsional)</label>
+          <textarea id="referensi" rows="3" placeholder="Tempel di sini isi CP, TP, atau materi yang Anda salin dari situs resmi atau buku."></textarea>
+        </div>
+        <div class="field">
+          <label for="catatan">Catatan atau topik (opsional)</label>
+          <textarea id="catatan" rows="3" placeholder="Contoh: kelas 3, satu pertemuan, fokus menyimak teks cerita, kelompok kecil."></textarea>
+        </div>
+        <div class="row">
+          <button type="button" class="btn primary" id="btn-gen">Buat RPP</button>
+          <button type="button" class="btn" id="btn-stop" hidden>Berhenti</button>
+          <button type="button" class="btn" id="btn-undo" hidden>Kembalikan isian sebelumnya</button>
+          <span class="progress" id="progress"></span>
+        </div>
+        <p class="aimsg" id="aimsg" role="status" aria-live="polite"></p>
+        <p class="sub">Isian identitas di atas ikut dibaca dan tidak diubah. Foto dikirim ke penyedia AI yang Anda pilih.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Identifikasi</h2>
+      <div id="grp-identifikasi" style="display:flex;flex-direction:column;gap:14px"></div>
+      <div class="field">
+        <span class="lbl" id="dpl-lbl">Dimensi Profil Lulusan (DPL)</span>
+        <p class="hint">Pilih dimensi yang ingin dicapai dalam pembelajaran ini.</p>
+        <div class="chips" id="dpl" role="group" aria-labelledby="dpl-lbl"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Desain Pembelajaran</h2>
+      <div id="grp-desain" style="display:flex;flex-direction:column;gap:14px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Pengalaman Belajar</h2>
+      <div id="grp-pengalaman" style="display:flex;flex-direction:column;gap:14px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Asesmen Pembelajaran</h2>
+      <div id="grp-asesmen" style="display:flex;flex-direction:column;gap:14px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Rubrik Penilaian</h2>
+      <div class="grid" id="grp-rubrik"></div>
+      <div class="tbl-scroll" id="rubrik-scroll" tabindex="0" aria-label="Tabel rubrik penilaian">
+        <table class="rt">
+          <thead><tr><th style="width:18%">Indikator</th><th>Baru Memulai</th><th>Berkembang</th><th>Cakap</th><th>Mahir</th><th style="width:76px"><span class="sr">Aksi</span></th></tr></thead>
+          <tbody id="rubrik-body"></tbody>
+        </table>
+      </div>
+      <div class="row"><button type="button" class="btn small" id="btn-addrow">Tambah indikator</button></div>
+      <div class="ket" id="ket"></div>
+    </div>
+  </section>
+
+  <section id="pane-preview" role="tabpanel" aria-labelledby="tab-preview" hidden>
+    <div class="paper" id="paper"></div>
+  </section>
+</main>
+<footer class="credit">Design by Akhmad Fitra Harry, S.Pd</footer>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const use = n => (window.claude && window.claude.use) ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
+
+// <docx-builder>
+const DPL = [
+  [1, 'Keimanan dan ketakwaan terhadap Tuhan Yang Maha Esa'], [2, 'Kewargaan'], [3, 'Penalaran Kritis'], [4, 'Kreativitas'],
+  [5, 'Kolaborasi'], [6, 'Kemandirian'], [7, 'Kesehatan'], [8, 'Komunikasi']
+];
+const KET = [
+  ['Baru Memulai', 'Peserta didik menunjukkan pemahaman dan keterampilan yang sangat dasar.'],
+  ['Berkembang', 'Peserta didik menunjukkan pemahaman dan keterampilan yang sedang berkembang, tetapi masih perlu perbaikan.'],
+  ['Cakap', 'Peserta didik menunjukkan pemahaman dan keterampilan yang baik, sesuai dengan harapan.'],
+  ['Mahir', 'Peserta didik menunjukkan pemahaman dan keterampilan yang sangat baik, melebihi harapan.']
+];
+const xesc = t => String(t == null ? '' : t).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files) {
+  const enc = new TextEncoder(), parts = [], central = [];
+  const u16 = n => [n & 255, (n >> 8) & 255];
+  const u32 = n => [n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255];
+  let off = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name), data = enc.encode(f.data), crc = crc32(data), size = data.length;
+    const local = new Uint8Array([0x50, 0x4b, 3, 4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(size), ...u32(size), ...u16(name.length), ...u16(0)]);
+    parts.push(local, name, data);
+    central.push(new Uint8Array([0x50, 0x4b, 1, 2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(size), ...u32(size), ...u16(name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(off)]), name);
+    off += local.length + name.length + size;
+  }
+  let cdSize = 0; for (const c of central) cdSize += c.length;
+  const end = new Uint8Array([0x50, 0x4b, 5, 6, 0, 0, 0, 0, ...u16(files.length), ...u16(files.length), ...u32(cdSize), ...u32(off), 0, 0]);
+  const all = [...parts, ...central, end]; let total = 0; for (const a of all) total += a.length;
+  const out = new Uint8Array(total); let p = 0; for (const a of all) { out.set(a, p); p += a.length; }
+  return out;
+}
+function wr(text, o = {}) {
+  const pr = (o.b ? '<w:b/>' : '') + (o.i ? '<w:i/>' : '') + (o.color ? `<w:color w:val="${o.color}"/>` : '') + (o.sz ? `<w:sz w:val="${o.sz}"/><w:szCs w:val="${o.sz}"/>` : '');
+  return `<w:r>${pr ? `<w:rPr>${pr}</w:rPr>` : ''}<w:t xml:space="preserve">${xesc(text)}</w:t></w:r>`;
+}
+function wp(runs, o = {}) {
+  let pr = '';
+  if (o.keepNext) pr += '<w:keepNext/>';
+  pr += `<w:spacing w:before="${o.before || 0}" w:after="${o.after == null ? 60 : o.after}" w:line="276" w:lineRule="auto"/>`;
+  if (o.align) pr += `<w:jc w:val="${o.align}"/>`;
+  return `<w:p><w:pPr>${pr}</w:pPr>${runs || ''}</w:p>`;
+}
+function witem(mark, runs, left, hang) {
+  return `<w:p><w:pPr><w:tabs><w:tab w:val="left" w:pos="${left}"/></w:tabs><w:spacing w:before="0" w:after="40" w:line="276" w:lineRule="auto"/><w:ind w:left="${left}" w:hanging="${hang}"/></w:pPr><w:r><w:t xml:space="preserve">${xesc(mark)}</w:t></w:r><w:r><w:tab/></w:r>${runs}</w:p>`;
+}
+function wtc(inner, w, o = {}) {
+  return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${o.span ? `<w:gridSpan w:val="${o.span}"/>` : ''}${o.fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${o.fill}"/>` : ''}</w:tcPr>${inner || wp('', { after: 0 })}</w:tc>`;
+}
+function wtbl(rows, widths, noBorder) {
+  const b = noBorder
+    ? '<w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders>'
+    : '<w:tblBorders>' + ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(s => `<w:${s} w:val="single" w:sz="4" w:space="0" w:color="98A4A7"/>`).join('') + '</w:tblBorders>';
+  const sum = widths.reduce((a, c) => a + c, 0);
+  return `<w:tbl><w:tblPr><w:tblW w:w="${sum}" w:type="dxa"/>${b}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${widths.map(w => `<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rows}</w:tbl>`;
+}
+function buildBodyXml(s) {
+  const W = 9638, HEAD = '0E5C66', LABEL = 'EEF3F4', LIGHT = 'DDEBED';
+  const gap = (h = 120, keep) => `<w:p><w:pPr>${keep ? '<w:keepNext/>' : ''}<w:spacing w:before="0" w:after="0" w:line="${h}" w:lineRule="exact"/></w:pPr></w:p>`;
+  const paras = t => String(t || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean).map(x => wp(wr(x), { after: 40 })).join('');
+  const bar = title => wtbl(`<w:tr>${wtc(wp(wr(title, { b: 1, color: 'FFFFFF' }), { after: 0, keepNext: 1 }), W, { fill: HEAD })}</w:tr>`, [W]);
+  const section = (title, rows) => wtbl(
+    `<w:tr>${wtc(wp(wr(title, { b: 1, color: 'FFFFFF' }), { after: 0, keepNext: 1 }), W, { span: 2, fill: HEAD })}</w:tr>` +
+    rows.map(([k, content]) => `<w:tr>${wtc(wp(wr(k, { b: 1 }), { after: 0 }), 2400, { fill: LABEL })}${wtc(content, W - 2400)}</w:tr>`).join(''),
+    [2400, W - 2400]) + gap();
+  const steps = list => (list || []).map((t, i) => witem(`${i + 1}.`, wr(t), 640, 400)).join('');
+  const out = [];
+
+  out.push(wp(wr('PERENCANAAN PEMBELAJARAN MENDALAM (RPP)', { b: 1, sz: 28 }), { align: 'center', after: 200 }));
+  const info = [['SEKOLAH', s.sekolah], ['NAMA GURU', s.guru], ['MATA PELAJARAN', s.mapel], ['KELAS / SEMESTER', s.kelas], ['ALOKASI WAKTU', s.alokasi]];
+  out.push(wtbl(info.map(([k, v]) => `<w:tr>${wtc(wp(wr(k, { b: 1 }), { after: 0 }), 2600)}${wtc(wp(wr(':'), { after: 0 }), 300)}${wtc(wp(wr(v || '-'), { after: 0 }), W - 2900)}</w:tr>`).join(''), [2600, 300, W - 2900], true));
+  out.push(gap(160));
+
+  const dplXml = (s.dpl || []).slice().sort((a, b) => a - b).map(n => {
+    const d = DPL.find(x => x[0] === n); return d ? witem('•', wr(`DPL ${n}: ${d[1]} `) + wr('(Terpilih)', { i: 1 }), 300, 300) : '';
+  }).join('');
+  out.push(section('IDENTIFIKASI', [
+    ['Peserta Didik', paras(s.peserta)], ['Materi Pelajaran', paras(s.materi)], ['Dimensi Profil Lulusan (DPL)', dplXml]
+  ]));
+  out.push(section('DESAIN PEMBELAJARAN', [
+    ['Capaian Pembelajaran', paras(s.cp)], ['Lintas Disiplin Ilmu', paras(s.lintas)], ['Tujuan Pembelajaran', paras(s.tujuan)],
+    ['Topik Pembelajaran', paras(s.topik)], ['Praktik Pedagogis', paras(s.pedagogis)], ['Kemitraan Pembelajaran', paras(s.kemitraan)],
+    ['Lingkungan Pembelajaran', paras(s.lingkungan)], ['Pemanfaatan Digital', paras(s.digital)]
+  ]));
+
+  out.push(bar('PENGALAMAN BELAJAR'));
+  out.push(gap(100, true));
+  const head = (title, pr, before) => wp(wr(title, { b: 1 }) + (pr ? wr(` (Prinsip: ${pr})`) : ''), { before, after: 60, keepNext: 1 });
+  out.push(head('AWAL', s.awal.prinsip, 60) + steps(s.awal.langkah));
+  out.push(wp(wr('INTI', { b: 1 }), { before: 140, after: 40, keepNext: 1 }));
+  [['1. Memahami', s.inti.memahami], ['2. Mengaplikasi', s.inti.mengaplikasi], ['3. Merefleksi', s.inti.merefleksi]]
+    .forEach(([t, o]) => out.push(head(t, o.prinsip, 80) + steps(o.langkah)));
+  out.push(head('PENUTUP', s.penutup.prinsip, 140) + steps(s.penutup.langkah));
+  out.push(gap(160));
+
+  out.push(section('ASESMEN PEMBELAJARAN', [
+    ['Asesmen pada Awal Pembelajaran', paras(s.asesmen.awal)], ['Asesmen pada Proses Pembelajaran', paras(s.asesmen.proses)],
+    ['Asesmen pada Akhir Pembelajaran', paras(s.asesmen.akhir)]
+  ]));
+
+  out.push(wp(wr(s.rubrikJudul || 'Rubrik Penilaian', { b: 1, sz: 24 }), { before: 120, after: 60, keepNext: 1 }));
+  out.push(wp(wr('Tujuan Pembelajaran: ', { b: 1 }) + wr(String(s.rubrikTujuan || s.tujuan || '').replace(/\s*\r?\n\s*/g, ' ')), { after: 100, keepNext: 1 }));
+  const cw = [1900, 1934, 1934, 1934, 1936];
+  const hdr = `<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>${['Indikator', 'Baru Memulai', 'Berkembang', 'Cakap', 'Mahir'].map((t, i) => wtc(wp(wr(t, { b: 1 }), { after: 0 }), cw[i], { fill: LIGHT })).join('')}</w:tr>`;
+  const body = (s.rubrik || []).map(r => `<w:tr><w:trPr><w:cantSplit/></w:trPr>${wtc(wp(wr(r.indikator, { b: 1 }), { after: 0 }), cw[0])}${['baru', 'berkembang', 'cakap', 'mahir'].map((k, i) => wtc(wp(wr(r[k]), { after: 0 }), cw[i + 1])).join('')}</w:tr>`).join('');
+  out.push(wtbl(hdr + body, cw));
+  out.push(gap(120));
+  out.push(wp(wr('Keterangan Status:', { b: 1 }), { after: 40, keepNext: 1 }));
+  KET.forEach(([k, v]) => out.push(witem('•', wr(k + ': ', { b: 1 }) + wr(v), 360, 360)));
+  return out.join('');
+}
+function buildDocxBytes(s) {
+  const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const X = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  const doc = `${X}<w:document ${NS}><w:body>${buildBodyXml(s)}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const styles = `${X}<w:styles ${NS}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/><w:lang w:val="id-ID"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="60" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style></w:styles>`;
+  const ct = `${X}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`;
+  const rels = `${X}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  const drels = `${X}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  return zipStore([
+    { name: '[Content_Types].xml', data: ct }, { name: '_rels/.rels', data: rels },
+    { name: 'word/document.xml', data: doc }, { name: 'word/styles.xml', data: styles }, { name: 'word/_rels/document.xml.rels', data: drels }
+  ]);
+}
+// </docx-builder>
+
+/* ---------- data ---------- */
+const PR = 'Berkesadaran, Bermakna, Menggembirakan';
+const COLS = ['baru', 'berkembang', 'cakap', 'mahir'];
+const COLN = ['Baru Memulai', 'Berkembang', 'Cakap', 'Mahir'];
+const str = v => v == null ? '' : Array.isArray(v) ? v.map(str).filter(Boolean).join('\n') : (typeof v === 'object' ? '' : String(v).trim());
+const lines = v => (Array.isArray(v) ? v : String(v == null ? '' : v).split(/\r?\n/)).map(x => String(x).replace(/^\s*(\d+\s*[.)]|[-•*])\s*/, '').trim()).filter(Boolean);
+const stage = o => ({ prinsip: str(o && o.prinsip) || PR, langkah: lines(o && o.langkah) });
+const rowOf = r => ({ indikator: str(r && r.indikator), baru: str(r && r.baru), berkembang: str(r && r.berkembang), cakap: str(r && r.cakap), mahir: str(r && r.mahir) });
+function normalize(o) {
+  o = (o && typeof o === 'object') ? o : {};
+  const inti = o.inti || {}, as = o.asesmen || {};
+  const dpl = [...new Set((Array.isArray(o.dpl) ? o.dpl : []).map(n => parseInt(n, 10)).filter(n => n >= 1 && n <= 8))].sort((a, b) => a - b);
+  const rub = (Array.isArray(o.rubrik) ? o.rubrik : []).map(rowOf);
+  return {
+    _contoh: !!o._contoh,
+    sekolah: str(o.sekolah), guru: str(o.guru), mapel: str(o.mapel), kelas: str(o.kelas), alokasi: str(o.alokasi),
+    peserta: str(o.peserta), materi: str(o.materi), dpl,
+    cp: str(o.cp), lintas: str(o.lintas), tujuan: str(o.tujuan), topik: str(o.topik),
+    pedagogis: str(o.pedagogis), kemitraan: str(o.kemitraan), lingkungan: str(o.lingkungan), digital: str(o.digital),
+    awal: stage(o.awal), inti: { memahami: stage(inti.memahami), mengaplikasi: stage(inti.mengaplikasi), merefleksi: stage(inti.merefleksi) },
+    penutup: stage(o.penutup),
+    asesmen: { awal: str(as.awal), proses: str(as.proses), akhir: str(as.akhir) },
+    rubrikJudul: str(o.rubrikJudul) || 'Rubrik Penilaian Diskusi Kelas', rubrikTujuan: str(o.rubrikTujuan),
+    rubrik: rub.length ? rub : [rowOf(), rowOf(), rowOf()]
+  };
+}
+const blank = () => normalize({});
+
+const SAMPLE_RAW = {
+  sekolah: 'SD Negeri 1 Barabai Timur', guru: 'Akhmad Fitra Harry, S.Pd', mapel: 'Bahasa Indonesia',
+  kelas: 'III (Tiga) / Semester 1', alokasi: '2 x 35 Menit (1 Pertemuan)',
+  peserta: 'Kesiapan peserta didik beragam. Sebagian besar sudah mengenali benda-benda di sekitar mereka, tetapi masih memerlukan bimbingan untuk mengidentifikasi kata-kata khusus tentang perubahan wujud benda dan memahami maknanya melalui kegiatan menyimak teks.',
+  materi: 'Materi "Ragam Benda dan Ciri-cirinya" berfokus pada kegiatan menyimak cerita tentang es krim yang mencair. Materi mengasah kemampuan mengidentifikasi kata dan makna kata terkait perubahan wujud benda (panas, terik, mencair, menyegarkan). Materi bersifat kontekstual dengan kehidupan sehari-hari peserta didik.',
+  dpl: [1, 3, 5, 8],
+  cp: 'Peserta didik mampu mengidentifikasi kata-kata dan memaknai kata-kata tentang perubahan wujud benda dalam teks yang disimak.',
+  lintas: 'Ilmu Pengetahuan Alam dan Sosial (IPAS): Perubahan Wujud Benda.',
+  tujuan: 'Peserta didik dapat mengidentifikasi kata-kata dan makna kata tentang perubahan wujud benda dalam teks yang disimak secara tepat.',
+  topik: 'Ragam Benda dan Ciri-cirinya (mengidentifikasi kata-kata dan makna kata tentang perubahan wujud benda).',
+  pedagogis: 'Pembelajaran Kontekstual (Contextual Teaching and Learning) dan Pembelajaran Berbasis Masalah (Problem-Based Learning).',
+  kemitraan: 'Kolaborasi antarpeserta didik (teman sebaya), lingkungan sekolah, serta bimbingan dari guru.',
+  lingkungan: 'Ruang kelas yang interaktif, nyaman, dan mendukung kegiatan menyimak, diskusi kelompok, serta budaya belajar aktif.',
+  digital: 'Media audio/video cerita interaktif, slide presentasi materi, dan LKPD digital atau cetak.',
+  awal: { prinsip: PR, langkah: [
+    'Guru membuka pembelajaran dengan salam, bertegur sapa, dan berdoa bersama yang dipimpin oleh salah satu peserta didik (DPL 1).',
+    'Guru melakukan ice breaking yang menggembirakan untuk membangkitkan kesiapan belajar.',
+    'Guru melakukan apersepsi kontekstual dengan pertanyaan pemantik: "Siapa yang pernah makan es krim saat cuaca panas? Apa yang terjadi jika es krim itu dibiarkan terlalu lama di luar?"',
+    'Guru menyampaikan tujuan pembelajaran dan aktivitas yang akan dilakukan hari ini.'] },
+  inti: {
+    memahami: { prinsip: 'Berkesadaran dan Bermakna', langkah: [
+      'Peserta didik menyimak dengan saksama pembacaan teks "Ragam Benda dan Ciri-cirinya" (cerita es krim mencair di bawah terik matahari) oleh guru atau melalui audio.',
+      'Peserta didik bersama guru mendiskusikan isi teks: benda yang dibicarakan, ciri-cirinya, serta perubahan wujud yang terjadi.',
+      'Peserta didik mengidentifikasi kata-kata baru terkait perubahan wujud benda (mencair, panas, terik, menyegarkan) dan mendiskusikan maknanya bersama-sama.'] },
+    mengaplikasi: { prinsip: 'Bermakna dan Menggembirakan', langkah: [
+      'Peserta didik dibagi ke dalam beberapa kelompok kecil secara heterogen (DPL 5).',
+      'Setiap kelompok mengerjakan Lembar Kerja Peserta Didik (LKPD) untuk menemukan kata kunci dan mencocokkan makna kata tentang perubahan wujud benda berdasarkan cerita yang disimak.',
+      'Peserta didik menyusun peta konsep sederhana mengenai kata-kata benda dan ciri-cirinya sesuai instruksi pada LKPD.'] },
+    merefleksi: { prinsip: 'Berkesadaran', langkah: [
+      'Setiap kelompok mempresentasikan hasil diskusi di depan kelas dengan santun dan percaya diri (DPL 8).',
+      'Kelompok lain mendengarkan dan memberikan tanggapan secara kritis dan konstruktif (DPL 3).',
+      'Peserta didik bersama guru menyimpulkan pentingnya memahami kata-kata perubahan wujud benda dalam kehidupan sehari-hari.'] } },
+  penutup: { prinsip: PR, langkah: [
+    'Peserta didik dan guru merangkum bersama poin-poin penting yang telah dipelajari.',
+    'Guru memberikan apresiasi atas kerja keras, keaktifan, dan kerja sama seluruh kelompok.',
+    'Peserta didik melakukan refleksi singkat tentang perasaan dan pemahaman mereka setelah mengikuti pembelajaran.',
+    'Guru memberi gambaran singkat tentang topik pertemuan berikutnya dan menutup pembelajaran dengan doa serta salam.'] },
+  asesmen: {
+    awal: 'Asesmen diagnostik kognitif singkat secara lisan saat apersepsi tentang pemahaman awal peserta didik mengenai wujud benda dan perubahannya.',
+    proses: 'Asesmen formatif melalui observasi keaktifan, diskusi kelompok, penilaian kerja sama (kolaborasi), dan presentasi.',
+    akhir: 'Asesmen sumatif berupa tes tertulis singkat (menjodohkan kata dengan maknanya dan mengidentifikasi kata wujud benda dalam teks).' },
+  rubrikJudul: 'Rubrik Penilaian Diskusi Kelas',
+  rubrikTujuan: 'Peserta didik dapat mengidentifikasi kata-kata dan makna kata tentang perubahan wujud benda dalam teks yang disimak.',
+  rubrik: [
+    { indikator: 'Mengidentifikasi kata-kata perubahan wujud benda', baru: 'Memerlukan bantuan penuh untuk mengidentifikasi kata-kata wujud benda dalam teks.', berkembang: 'Dapat mengidentifikasi sebagian kecil kata-kata wujud benda dengan bantuan guru.', cakap: 'Dapat mengidentifikasi sebagian besar kata-kata wujud benda dalam teks dengan tepat.', mahir: 'Dapat mengidentifikasi seluruh kata-kata wujud benda dalam teks secara mandiri dan tepat.' },
+    { indikator: 'Menjelaskan makna kata', baru: 'Belum mampu menjelaskan makna kata terkait perubahan wujud benda.', berkembang: 'Menjelaskan makna kata dengan kurang tepat dan perlu bimbingan.', cakap: 'Menjelaskan makna kata tentang perubahan wujud benda dengan baik dan benar.', mahir: 'Menjelaskan makna kata secara tepat, jelas, dan disertai contoh kontekstual.' },
+    { indikator: 'Kerja sama dan komunikasi (diskusi kelompok)', baru: 'Pasif dalam kelompok dan belum mau bekerja sama.', berkembang: 'Cukup aktif tetapi masih perlu didorong untuk berkontribusi dalam kelompok.', cakap: 'Aktif berdiskusi, bekerja sama dengan baik, dan menyampaikan pendapat.', mahir: 'Sangat aktif, memimpin diskusi dengan santun, serta menghargai pendapat teman.' }
+  ]
+};
+
+const KEY = 'rpp-mendalam-draft-v1';
+let state;
+function loadState() {
+  try { const raw = localStorage.getItem(KEY); if (raw) return normalize(JSON.parse(raw)); } catch (e) { /* storage unavailable */ }
+  return normalize({ ...SAMPLE_RAW, _contoh: true });
+}
+let saveT;
+function save() { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }, 400); }
+const getP = (o, p) => p.split('.').reduce((a, k) => a == null ? a : a[k], o);
+function setP(o, p, v) { const ks = p.split('.'); const last = ks.pop(); const t = ks.reduce((a, k) => a[k], o); t[last] = v; }
+const hx = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/* ---------- form rendering ---------- */
+const fid = p => 'f-' + p.replace(/\./g, '-');
+function fld(path, label, hint, o = {}) {
+  const id = fid(path);
+  const d = hint ? ` aria-describedby="${id}-h"` : '';
+  const ctl = o.area
+    ? `<textarea id="${id}" data-k="${path}"${o.lines ? ' data-lines' : ''} rows="${o.rows || 3}"${d}></textarea>`
+    : `<input id="${id}" data-k="${path}" type="text" autocomplete="off"${d}>`;
+  return `<div class="field"><label for="${id}">${label}</label>${hint ? `<p class="hint" id="${id}-h">${hint}</p>` : ''}${ctl}</div>`;
+}
+function stageBlock(key, title) {
+  return `<div class="stage"><h3>${title}</h3>${fld(key + '.prinsip', 'Prinsip pembelajaran')}${fld(key + '.langkah', 'Langkah kegiatan', 'Satu langkah per baris. Nomor ditambahkan otomatis.', { area: 1, lines: 1, rows: 5 })}</div>`;
+}
+function buildForm() {
+  $('#grp-identitas').innerHTML = [['sekolah', 'Sekolah'], ['guru', 'Nama guru'], ['mapel', 'Mata pelajaran'], ['kelas', 'Kelas / semester'], ['alokasi', 'Alokasi waktu']].map(([k, l]) => fld(k, l)).join('');
+  $('#grp-identifikasi').innerHTML =
+    fld('peserta', 'Peserta didik', 'Pengetahuan awal, minat, latar belakang, dan kebutuhan belajar.', { area: 1 }) +
+    fld('materi', 'Materi pelajaran', 'Jenis pengetahuan, relevansi dengan kehidupan nyata, tingkat kesulitan, serta nilai dan karakter.', { area: 1 });
+  $('#grp-desain').innerHTML =
+    fld('cp', 'Capaian pembelajaran', 'Sesuai fase.', { area: 1 }) +
+    fld('lintas', 'Lintas disiplin ilmu', 'Disiplin ilmu atau mata pelajaran yang relevan.', { area: 1, rows: 2 }) +
+    fld('tujuan', 'Tujuan pembelajaran', 'Subjek, kata kerja operasional terukur, kondisi, dan tingkat pencapaian. Untuk lebih dari satu pertemuan, tulis satu tujuan per baris.', { area: 1 }) +
+    fld('topik', 'Topik pembelajaran', '', { area: 1, rows: 2 }) +
+    fld('pedagogis', 'Praktik pedagogis', 'Model, strategi, atau metode, misalnya berbasis masalah, proyek, inkuiri, atau kontekstual.', { area: 1, rows: 2 }) +
+    fld('kemitraan', 'Kemitraan pembelajaran', 'Guru lain, teman sebaya, orang tua, komunitas, atau mitra profesional.', { area: 1, rows: 2 }) +
+    fld('lingkungan', 'Lingkungan pembelajaran', 'Ruang fisik, ruang virtual, dan budaya belajar.', { area: 1, rows: 2 }) +
+    fld('digital', 'Pemanfaatan digital', 'Teknologi yang membuat pembelajaran lebih interaktif dan kolaboratif.', { area: 1, rows: 2 });
+  $('#grp-pengalaman').innerHTML =
+    stageBlock('awal', 'Awal') + stageBlock('inti.memahami', 'Inti: Memahami') + stageBlock('inti.mengaplikasi', 'Inti: Mengaplikasi') +
+    stageBlock('inti.merefleksi', 'Inti: Merefleksi') + stageBlock('penutup', 'Penutup');
+  $('#grp-asesmen').innerHTML =
+    fld('asesmen.awal', 'Asesmen pada awal pembelajaran', 'Misalnya asesmen diagnostik lisan.', { area: 1, rows: 2 }) +
+    fld('asesmen.proses', 'Asesmen pada proses pembelajaran', 'Misalnya observasi, penilaian kinerja, atau presentasi.', { area: 1, rows: 2 }) +
+    fld('asesmen.akhir', 'Asesmen pada akhir pembelajaran', 'Misalnya tes tertulis atau penilaian produk.', { area: 1, rows: 2 });
+  $('#grp-rubrik').innerHTML = fld('rubrikJudul', 'Judul rubrik') + fld('rubrikTujuan', 'Tujuan pembelajaran pada rubrik', 'Kosongkan untuk memakai tujuan pembelajaran di atas.', { area: 1, rows: 2 });
+  $('#dpl').innerHTML = DPL.map(([n, name]) => `<label class="chip"><input type="checkbox" data-dpl="${n}"><span><b>DPL ${n}</b>${hx(name)}</span></label>`).join('');
+  $('#ket').innerHTML = KET.map(([k, v]) => `<p><strong>${k}:</strong> ${v}</p>`).join('');
+}
+const autosize = el => { el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; };
+function renderRubrik() {
+  $('#rubrik-body').innerHTML = state.rubrik.map((r, i) => {
+    const cell = (c, lab) => `<td><textarea rows="4" data-ri="${i}" data-col="${c}" aria-label="${lab}, indikator ${i + 1}">${hx(r[c])}</textarea></td>`;
+    return `<tr>${cell('indikator', 'Indikator')}${COLS.map((c, j) => cell(c, COLN[j])).join('')}<td><button type="button" class="btn small" data-del="${i}" aria-label="Hapus indikator ${i + 1}">Hapus</button></td></tr>`;
+  }).join('');
+}
+function fillForm() {
+  $$('[data-k]').forEach(el => {
+    const v = getP(state, el.dataset.k);
+    el.value = el.hasAttribute('data-lines') ? (v || []).join('\n') : (v || '');
+  });
+  $$('[data-dpl]').forEach(el => { el.checked = state.dpl.includes(+el.dataset.dpl); });
+  renderRubrik();
+  $('#sample-note').hidden = !state._contoh;
+  fitAll();
+}
+function fitAll() { $$('textarea[data-k]').forEach(autosize); }
+function touch() { if (state._contoh) { state._contoh = false; $('#sample-note').hidden = true; } save(); }
+
+/* ---------- preview ---------- */
+function previewHtml(s) {
+  const P = t => String(t || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean).map(x => `<p>${hx(x)}</p>`).join('');
+  const sec = (title, rows) => `<table><tr><th class="hd" colspan="2">${title}</th></tr>${rows.map(([k, c]) => `<tr><td class="lb">${k}</td><td>${c}</td></tr>`).join('')}</table>`;
+  const steps = l => (l || []).map((t, i) => `<div class="li st"><span>${i + 1}.</span><span>${hx(t)}</span></div>`).join('');
+  const hd = (t, pr) => `<h4>${t}${pr ? ` <span style="font-weight:400">(Prinsip: ${hx(pr)})</span>` : ''}</h4>`;
+  const dpl = s.dpl.map(n => { const d = DPL.find(x => x[0] === n); return d ? `<div class="li"><span>•</span><span>DPL ${n}: ${hx(d[1])} <i>(Terpilih)</i></span></div>` : ''; }).join('');
+  const info = [['SEKOLAH', s.sekolah], ['NAMA GURU', s.guru], ['MATA PELAJARAN', s.mapel], ['KELAS / SEMESTER', s.kelas], ['ALOKASI WAKTU', s.alokasi]]
+    .map(([k, v]) => `<tr><td>${k}</td><td>:</td><td>${hx(v || '-')}</td></tr>`).join('');
+  return `<h1>PERENCANAAN PEMBELAJARAN MENDALAM (RPP)</h1><table class="info">${info}</table>` +
+    sec('IDENTIFIKASI', [['Peserta Didik', P(s.peserta)], ['Materi Pelajaran', P(s.materi)], ['Dimensi Profil Lulusan (DPL)', dpl]]) +
+    sec('DESAIN PEMBELAJARAN', [['Capaian Pembelajaran', P(s.cp)], ['Lintas Disiplin Ilmu', P(s.lintas)], ['Tujuan Pembelajaran', P(s.tujuan)], ['Topik Pembelajaran', P(s.topik)], ['Praktik Pedagogis', P(s.pedagogis)], ['Kemitraan Pembelajaran', P(s.kemitraan)], ['Lingkungan Pembelajaran', P(s.lingkungan)], ['Pemanfaatan Digital', P(s.digital)]]) +
+    `<div class="bar2">PENGALAMAN BELAJAR</div>` +
+    hd('AWAL', s.awal.prinsip) + steps(s.awal.langkah) + hd('INTI') +
+    hd('1. Memahami', s.inti.memahami.prinsip) + steps(s.inti.memahami.langkah) +
+    hd('2. Mengaplikasi', s.inti.mengaplikasi.prinsip) + steps(s.inti.mengaplikasi.langkah) +
+    hd('3. Merefleksi', s.inti.merefleksi.prinsip) + steps(s.inti.merefleksi.langkah) +
+    hd('PENUTUP', s.penutup.prinsip) + steps(s.penutup.langkah) +
+    `<div style="height:12px"></div>` +
+    sec('ASESMEN PEMBELAJARAN', [['Asesmen pada Awal Pembelajaran', P(s.asesmen.awal)], ['Asesmen pada Proses Pembelajaran', P(s.asesmen.proses)], ['Asesmen pada Akhir Pembelajaran', P(s.asesmen.akhir)]]) +
+    `<h4>${hx(s.rubrikJudul || 'Rubrik Penilaian')}</h4><p style="margin-bottom:6px"><b>Tujuan Pembelajaran:</b> ${hx(String(s.rubrikTujuan || s.tujuan || '').replace(/\s*\r?\n\s*/g, ' '))}</p>` +
+    `<table class="rub"><tr><th class="lt">Indikator</th>${COLN.map(c => `<th class="lt">${c}</th>`).join('')}</tr>` +
+    s.rubrik.map(r => `<tr><td><b>${hx(r.indikator)}</b></td>${COLS.map(c => `<td>${hx(r[c])}</td>`).join('')}</tr>`).join('') + `</table>` +
+    `<p class="nt"><b>Keterangan Status:</b></p>` + KET.map(([k, v]) => `<div class="li nt"><span>•</span><span><b>${k}:</b> ${v}</span></div>`).join('');
+}
+
+/* ---------- tabs, status ---------- */
+function setTab(t) {
+  const prev = t === 'preview';
+  $('#tab-susun').setAttribute('aria-selected', String(!prev));
+  $('#tab-preview').setAttribute('aria-selected', String(prev));
+  $('#pane-susun').hidden = prev; $('#pane-preview').hidden = !prev;
+  if (prev) $('#paper').innerHTML = previewHtml(state); else fitAll();
+  window.scrollTo(0, 0);
+}
+let stT;
+function say(msg, kind) {
+  const el = $('#status'); el.textContent = msg; el.className = 'status' + (kind ? ' ' + kind : '');
+  clearTimeout(stT); if (msg) stT = setTimeout(() => { el.textContent = ''; el.className = 'status'; }, 7000);
+}
+
+/* ---------- download ---------- */
+let dl = null;
+const fileName = () => {
+  const base = ['RPP', state.mapel, state.topik].map(x => String(x || '').trim()).filter(Boolean).join(' - ') || 'RPP Pembelajaran Mendalam';
+  return base.replace(/[\\/:*?"<>|\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 90) + '.docx';
+};
+async function doDownload() {
+  const b = $('#btn-docx'); b.disabled = true;
+  try {
+    const blob = new Blob([buildDocxBytes(state)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    if (!dl) {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName();
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      say('Berkas Word diunduh.', 'ok'); return;
+    }
+    const res = await dl.save({ filename: fileName(), data: blob });
+    say(res && res.status === 'saved' ? 'Berkas Word disimpan.' : 'Berkas Word dikirim.', 'ok');
+  } catch (e) {
+    if (e && e.code === 'declined') say('Unduhan dibatalkan.');
+    else say('Berkas belum bisa diunduh' + (e && e.code ? ' (' + e.code + ').' : '.'), 'err');
+  } finally { b.disabled = false; }
+}
+
+/* ---------- Claude generation ---------- */
+let sampleFn = null, imgLimits = null, imgs = [], ctl = null, running = false, prevState = null;
+const aimsg = (t, k) => { const el = $('#aimsg'); el.textContent = t || ''; el.className = 'aimsg' + (k ? ' ' + k : ''); };
+function renderThumbs() {
+  $('#thumbs').innerHTML = imgs.map((im, i) => `<div class="thumb"><img src="${im.url}" alt="Foto ${i + 1}"><button type="button" data-rm="${i}" aria-label="Hapus foto ${i + 1}">×</button></div>`).join('');
+}
+function addFiles(list) {
+  if (!imgLimits) return;
+  const bad = [];
+  for (const f of list) {
+    if (!imgLimits.mediaTypes.includes(f.type)) { bad.push(f.name + ' (jenis berkas tidak didukung)'); continue; }
+    if (f.size > imgLimits.maxInputBytes) { bad.push(f.name + ' (terlalu besar)'); continue; }
+    if (imgs.length >= imgLimits.maxCount) { bad.push('Batas ' + imgLimits.maxCount + ' foto tercapai'); break; }
+    imgs.push({ file: f, url: URL.createObjectURL(f) });
+  }
+  renderThumbs();
+  aimsg(bad.length ? 'Tidak ditambahkan: ' + bad.join('; ') + '.' : '', bad.length ? 'err' : '');
+}
+function buildPrompt(catatan) {
+  const ident = [['Sekolah', state.sekolah], ['Nama guru', state.guru], ['Mata pelajaran', state.mapel], ['Kelas / semester', state.kelas], ['Alokasi waktu', state.alokasi]]
+    .filter(([, v]) => v).map(([k, v]) => `- ${k}: ${v}`).join('\n') || '- (belum diisi)';
+  const ex = JSON.stringify(SAMPLE_RAW, null, 1);
+  return `Kamu membantu guru di Indonesia menyusun Perencanaan Pembelajaran Mendalam (RPP). Pendekatannya: prinsip berkesadaran, bermakna, menggembirakan; pengalaman belajar bertahap Memahami, Mengaplikasi, Merefleksi; dan 8 Dimensi Profil Lulusan (DPL).
+
+IDENTITAS DARI GURU (pakai apa adanya):
+${ident}
+
+CATATAN GURU:
+${catatan || '(tidak ada)'}
+
+REFERENSI TAMBAHAN DARI GURU (teks dari sumber lain, pakai bila relevan):
+${($('#referensi').value || '').trim().slice(0, 12000) || '(tidak ada)'}
+${(PROV() === 'gemini' && $('#websearch').checked) ? '\nPENCARIAN INTERNET: gunakan pencarian untuk memeriksa rujukan resmi (misalnya Capaian Pembelajaran dari Kemendikdasmen/BSKAP dan buku teks resmi) lalu sesuaikan CP, TP, dan materi. Tulis sumber yang dipakai di "catatan".\n' : ''}
+
+GAMBAR TERLAMPIR: ${imgs.length ? imgs.length + ' gambar (halaman buku, CP, TP, ATP, modul ajar, atau catatan)' : 'tidak ada'}
+
+ATURAN:
+1. Tulis dalam bahasa Indonesia baku yang sesuai jenjang dan kelas.
+2. Bila ada gambar, baca seluruh tulisannya dan jadikan itu sumber utama materi, capaian pembelajaran, dan tujuan. Jangan mengarang materi yang bertentangan dengan gambar.
+3. Isian identitas yang kosong: ambil dari gambar bila tertulis, jika tidak ada isi dengan "".
+4. "dpl" berisi angka 1 sampai 8: 1 Keimanan dan ketakwaan, 2 Kewargaan, 3 Penalaran Kritis, 4 Kreativitas, 5 Kolaborasi, 6 Kemandirian, 7 Kesehatan, 8 Komunikasi. Pilih yang benar-benar dilatih, biasanya 3 sampai 5.
+5. Tujuan pembelajaran memuat subjek, kata kerja operasional yang terukur, konteks, dan tingkat pencapaian. Bila lebih dari satu pertemuan, tulis satu tujuan per baris yang diawali "Pertemuan 1:", "Pertemuan 2:", dan seterusnya, lalu sesuaikan kegiatan.
+6. Pengalaman belajar: 3 sampai 6 langkah konkret per bagian. Sebut "(DPL n)" pada langkah yang melatih dimensi itu. "prinsip" tiap bagian dipilih dari berkesadaran, bermakna, menggembirakan.
+7. Asesmen: awal (diagnostik), proses (formatif), akhir (sumatif).
+8. Rubrik: 3 sampai 4 indikator, empat tingkat (baru memulai, berkembang, cakap, mahir) dengan kalimat singkat dan terukur.
+9. Contoh di bawah hanya untuk gaya, kedalaman, dan bentuk kunci. Jangan menyalin isinya.
+10. Bila gambar sulit dibaca atau informasi penting kurang, tetap susun sebaik mungkin dan jelaskan kendalanya di "catatan".
+
+FORMAT: balas hanya dengan satu objek JSON, tanpa teks lain. Kunci harus sama persis dengan contoh, ditambah "catatan" (string singkat, boleh kosong). Semua nilai berupa string, kecuali "dpl" (array angka), "langkah" (array string tanpa nomor), dan "rubrik" (array objek).
+
+CONTOH BENTUK DAN GAYA:
+${ex}`;
+}
+const ERR = {
+  not_granted: 'Izin untuk memakai Claude belum diberikan. Muat ulang halaman dan izinkan saat diminta.',
+  sampling_disabled: 'Claude tidak tersedia untuk akun ini.',
+  rate_limited: 'Terlalu sering atau batas pemakaian tercapai. Coba lagi beberapa saat lagi.',
+  session_expired: 'Sesi berakhir. Masuk kembali lalu coba lagi.',
+  image_rejected: 'Ada foto yang tidak bisa dibaca. Hapus foto itu atau ganti dengan berkas lain.',
+  refused: 'Claude tidak dapat memproses isi ini. Ubah foto atau catatan lalu coba lagi.',
+  empty_completion: 'Claude tidak menghasilkan teks. Tambahkan catatan topik lalu coba lagi.',
+  invalid_json: 'Hasil dari Claude tidak lengkap. Tekan Buat RPP sekali lagi, atau kurangi jumlah foto.',
+  prompt_too_large: 'Isian terlalu panjang. Persingkat catatan.',
+  upstream_error: 'Koneksi ke Claude terputus. Coba lagi.'
+};
+async function generate() {
+  if (running) return;
+  if (PROV() === 'claude' && !sampleFn) { aimsg('Claude tidak tersedia di sini. Pilih mesin AI lain.', 'err'); return; }
+  const catatan = $('#catatan').value.trim();
+  if (!imgs.length && !catatan && !state.mapel.trim() && !state.topik.trim()) { aimsg('Unggah foto materi atau tulis catatan topik terlebih dahulu.', 'err'); return; }
+  running = true; ctl = new AbortController();
+  $('#btn-gen').disabled = true; $('#btn-stop').hidden = false; $('#btn-undo').hidden = true;
+  aimsg(''); $('#progress').textContent = 'Menunggu AI…';
+  const opts = { signal: ctl.signal, onText: ({ text }) => { $('#progress').textContent = 'Claude sedang menyusun… ' + text.length.toLocaleString('id-ID') + ' karakter'; } };
+  if (imgs.length) opts.images = imgs.map(i => i.file);
+  try {
+    const out = PROV() === 'claude' ? await sampleFn.json(buildPrompt(catatan), opts) : await callExternal(buildPrompt(catatan), imgs.map(i => i.file), ctl.signal);
+    if (!out || typeof out !== 'object' || Array.isArray(out)) throw { code: 'invalid_json' };
+    const n = normalize(out);
+    for (const k of ['sekolah', 'guru', 'mapel', 'kelas', 'alokasi']) if (state[k].trim()) n[k] = state[k];
+    prevState = state; state = n; state._contoh = false;
+    fillForm(); save();
+    $('#btn-undo').hidden = false;
+    const cat = str(out.catatan);
+    aimsg('RPP sudah diisi. Periksa tiap bagian, lalu buka Pratinjau atau unduh.' + (cat ? ' Catatan AI: ' + cat : ''), 'ok');
+  } catch (e) {
+    if (e && e.code === 'cancelled') aimsg('Dihentikan. Isian tidak diubah.');
+    else if (e && e.code === 'ext') aimsg(e.message, 'err');
+    else aimsg(ERR[e && e.code] || 'Belum berhasil membuat RPP. Coba lagi.', 'err');
+  } finally {
+    running = false; ctl = null; $('#btn-gen').disabled = false; $('#btn-stop').hidden = true; $('#progress').textContent = '';
+  }
+}
+
+/* ---------- other AI providers (standalone) ---------- */
+const PROV = () => { const el = $('#prov'); return el ? el.value : 'claude'; };
+const DEF = { gemini: 'gemini-2.5-flash', openai: 'gpt-4o-mini' };
+const EXT_LIMITS = { mediaTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], maxCount: 8, maxInputBytes: 20 * 1024 * 1024 };
+function shrink(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(), u = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(u); const d = c.toDataURL('image/jpeg', 0.85);
+      res({ mime: 'image/jpeg', b64: d.split(',')[1], url: d });
+    };
+    img.onerror = () => { URL.revokeObjectURL(u); rej({ code: 'ext', message: 'Foto ' + file.name + ' tidak bisa dibaca.' }); };
+    img.src = u;
+  });
+}
+function parseLoose(t) {
+  t = String(t || '').trim();
+  try { return JSON.parse(t); } catch (e) { /* next */ }
+  const f = t.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (f) { try { return JSON.parse(f[1]); } catch (e) { /* next */ } }
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch (e) { /* next */ } }
+  throw { code: 'invalid_json' };
+}
+async function callExternal(prompt, files, signal) {
+  const p = PROV(), key = $('#apikey').value.trim(), model = $('#model').value.trim();
+  if (!key) throw { code: 'ext', message: 'Isi kunci API terlebih dahulu.' };
+  if (!model) throw { code: 'ext', message: 'Isi nama model terlebih dahulu.' };
+  const pics = []; for (const f of files) pics.push(await shrink(f));
+  let url, headers, body;
+  if (p === 'gemini') {
+    url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
+    headers = { 'Content-Type': 'application/json', 'x-goog-api-key': key };
+    body = { contents: [{ role: 'user', parts: [{ text: prompt }, ...pics.map(x => ({ inlineData: { mimeType: x.mime, data: x.b64 } }))] }] };
+    if ($('#websearch').checked) body.tools = [{ google_search: {} }]; else body.generationConfig = { responseMimeType: 'application/json' };
+  } else {
+    const base = ($('#baseurl').value.trim() || 'https://api.openai.com/v1').replace(/\/+$/, '');
+    url = base + '/chat/completions';
+    headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key };
+    body = { model, messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, ...pics.map(x => ({ type: 'image_url', image_url: { url: x.url } }))] }], response_format: { type: 'json_object' } };
+  }
+  let r;
+  try { r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal }); }
+  catch (e) {
+    if (e && e.name === 'AbortError') throw { code: 'cancelled' };
+    throw { code: 'ext', message: 'Tidak bisa terhubung ke layanan AI. Periksa koneksi internet dan alamat layanan.' };
+  }
+  const data = await r.json().catch(() => null);
+  if (!r.ok) {
+    const m = data && data.error ? (data.error.message || JSON.stringify(data.error)) : '';
+    throw { code: 'ext', message: 'Layanan AI menolak permintaan (' + r.status + ')' + (m ? ': ' + String(m).slice(0, 220) : '.') };
+  }
+  const text = p === 'gemini'
+    ? ((data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || []).map(x => x.text || '').join('')
+    : (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content);
+  return parseLoose(text);
+}
+
+/* ---------- wiring ---------- */
+function init() {
+  buildForm();
+  state = loadState();
+  fillForm();
+
+  $('#tab-susun').onclick = () => setTab('susun');
+  $('#tab-preview').onclick = () => setTab('preview');
+  $('#btn-docx').onclick = doDownload;
+  $('#btn-blank').onclick = () => { prevState = state; state = blank(); fillForm(); save(); $('#btn-undo').hidden = false; aimsg('Formulir dikosongkan.'); };
+  $('#btn-undo').onclick = () => { if (prevState) { state = prevState; prevState = null; fillForm(); save(); } $('#btn-undo').hidden = true; aimsg('Isian sebelumnya dikembalikan.'); };
+
+  $('#pane-susun').addEventListener('input', e => {
+    const t = e.target;
+    if (t.dataset.k) {
+      setP(state, t.dataset.k, t.hasAttribute('data-lines') ? lines(t.value) : t.value);
+      if (t.tagName === 'TEXTAREA') autosize(t);
+      touch();
+    } else if (t.dataset.ri != null) {
+      state.rubrik[+t.dataset.ri][t.dataset.col] = t.value; touch();
+    }
+  });
+  $('#dpl').addEventListener('change', e => {
+    const t = e.target; if (!t.dataset.dpl) return;
+    const n = +t.dataset.dpl; const s = new Set(state.dpl); t.checked ? s.add(n) : s.delete(n);
+    state.dpl = [...s].sort((a, b) => a - b); touch();
+  });
+  $('#btn-addrow').onclick = () => { state.rubrik.push(rowOf()); renderRubrik(); touch(); };
+  $('#rubrik-body').addEventListener('click', e => {
+    const b = e.target.closest('[data-del]'); if (!b) return;
+    if (state.rubrik.length > 1) { state.rubrik.splice(+b.dataset.del, 1); renderRubrik(); touch(); }
+    else say('Sisakan minimal satu indikator.', 'err');
+  });
+
+  // Claude panel
+  $('#btn-gen').onclick = generate;
+  $('#btn-stop').onclick = () => { if (ctl) ctl.abort(); };
+  $('#thumbs').addEventListener('click', e => {
+    const b = e.target.closest('[data-rm]'); if (!b) return;
+    const [rm] = imgs.splice(+b.dataset.rm, 1); if (rm) URL.revokeObjectURL(rm.url); renderThumbs();
+  });
+  const fi = $('#file-in'), drop = $('#drop');
+  fi.addEventListener('change', () => { addFiles([...fi.files]); fi.value = ''; });
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => addFiles([...(e.dataTransfer ? e.dataTransfer.files : [])]));
+
+  use('downloads').then(d => { dl = d; $('#btn-docx').disabled = false; });
+
+  const CFG = 'rpp-ai-settings';
+  let cfg = {}; try { cfg = JSON.parse(localStorage.getItem(CFG) || '{}') || {}; } catch (e) { cfg = {}; }
+  cfg.model = cfg.model || {};
+  let claudeLimits = null, lastProv = null;
+  const saveCfg = () => {
+    const p = PROV(); if (p !== 'claude') cfg.model[p] = $('#model').value;
+    cfg.prov = p; cfg.base = $('#baseurl').value; cfg.search = $('#websearch').checked; cfg.remember = $('#remember').checked;
+    cfg.key = cfg.remember ? $('#apikey').value : '';
+    try { localStorage.setItem(CFG, JSON.stringify(cfg)); } catch (e) { /* ignore */ }
+  };
+  function applyProv() {
+    const p = PROV();
+    if (lastProv && lastProv !== 'claude') cfg.model[lastProv] = $('#model').value;
+    lastProv = p;
+    $('#opt-ext').hidden = p === 'claude'; $('#opt-base').hidden = p !== 'openai'; $('#opt-search').hidden = p !== 'gemini';
+    if (p !== 'claude') $('#model').value = cfg.model[p] || DEF[p];
+    imgLimits = (p === 'claude' && claudeLimits) ? claudeLimits : EXT_LIMITS;
+    fi.accept = imgLimits.mediaTypes.join(',');
+    $('#drop-wrap').hidden = false;
+    $('#drop-hint').textContent = 'JPG, PNG, WebP, atau GIF. Sampai ' + imgLimits.maxCount + ' foto, satu halaman per foto.';
+    saveCfg();
+  }
+  $('#baseurl').value = cfg.base || ''; $('#websearch').checked = cfg.search !== false; $('#remember').checked = !!cfg.remember; $('#apikey').value = cfg.remember ? (cfg.key || '') : '';
+  ['#apikey', '#model', '#baseurl', '#websearch', '#remember'].forEach(s => $(s).addEventListener('change', saveCfg));
+  $('#prov').addEventListener('change', applyProv);
+
+  const fill = () => {
+    const opts = [];
+    if (sampleFn) opts.push(['claude', 'Claude (di dalam aplikasi Claude)']);
+    opts.push(['gemini', 'Google Gemini (bisa mencari referensi di internet)'], ['openai', 'OpenAI atau layanan yang kompatibel']);
+    $('#prov').innerHTML = opts.map(([v, l]) => '<option value="' + v + '">' + l + '</option>').join('');
+    $('#prov').value = opts.some(o => o[0] === cfg.prov) ? cfg.prov : opts[0][0];
+    applyProv();
+  };
+  fill();
+  use('sample').then(async s => {
+    if (!s) return;
+    sampleFn = s;
+    try { const l = await s.limits(); if (l && l.images) claudeLimits = l.images; } catch (e) { /* no images */ }
+    const cur = PROV(); fill(); if (cfg.prov == null && cur) { /* keep default */ }
+  });
+}
+init();
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body></html>
