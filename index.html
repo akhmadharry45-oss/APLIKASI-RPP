@@ -114,6 +114,11 @@ input[type="text"]:focus,input[type="password"]:focus,textarea:focus{outline:non
 .keybox summary{cursor:pointer;font-weight:700;font-size:14px}
 .keybox[open]{display:flex;flex-direction:column;gap:12px}
 .keybox[open] summary{margin-bottom:-2px}
+.imodal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+.imbox{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px}
+.imbox h2{margin:0;font-size:18px}
+.imbox ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+.imbox p{margin:0;font-size:14.5px}
 .chk{display:flex;align-items:center;gap:9px;font-size:14px}
 .chk input{width:18px;height:18px;accent-color:var(--accent)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;opacity:0}
@@ -185,10 +190,18 @@ input[type="text"]:focus,input[type="password"]:focus,textarea:focus{outline:non
         <button type="button" id="tab-edit" aria-pressed="true">Susun</button>
         <button type="button" id="tab-view" aria-pressed="false">Pratinjau</button>
       </div>
+      <button type="button" class="btn quiet" id="btn-install" hidden>Pasang aplikasi</button>
       <button type="button" class="btn" id="btn-docx">Unduh Word (.docx)</button>
     </div>
   </div>
 </header>
+<div class="imodal" id="imodal" hidden role="dialog" aria-modal="true" aria-labelledby="im-t">
+  <div class="imbox">
+    <h2 id="im-t">Pasang aplikasi di HP</h2>
+    <div id="im-body"></div>
+    <button type="button" class="btn" id="im-close">Tutup</button>
+  </div>
+</div>
 
 <main class="wrap main">
   <div id="view-edit" class="stack">
@@ -905,6 +918,30 @@ refreshAll();
 })();
 </script>
 
+<script>
+(function(){
+  var btn=document.getElementById('btn-install'),modal=document.getElementById('imodal'),body=document.getElementById('im-body'),dp=null;
+  if(!btn) return;
+  var standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+  if(standalone) return;
+  btn.hidden=false;
+  window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); dp=e; });
+  window.addEventListener('appinstalled',function(){ btn.hidden=true; dp=null; });
+  function show(html){ body.innerHTML=html; modal.hidden=false; document.getElementById('im-close').focus(); }
+  btn.addEventListener('click',function(){
+    if(dp){ dp.prompt(); dp.userChoice.then(function(){ dp=null; }).catch(function(){}); return; }
+    var ua=navigator.userAgent||'';
+    if(/iPhone|iPad|iPod/.test(ua)){
+      show('<ol><li>Buka halaman ini di <b>Safari</b>.</li><li>Ketuk tombol <b>Bagikan</b> (kotak dengan panah ke atas).</li><li>Pilih <b>Tambah ke Layar Utama</b>, lalu <b>Tambah</b>.</li></ol>');
+    }else{
+      show('<p>Tombol pasang otomatis belum tersedia di browser ini. Pasang lewat menu:</p><ol><li>Buka halaman ini di <b>Chrome</b>.</li><li>Ketuk <b>\u22ee</b> (titik tiga) di kanan atas.</li><li>Pilih <b>Instal aplikasi</b> atau <b>Tambahkan ke layar utama</b>, lalu <b>Instal</b>.</li></ol><p>Jika pilihannya tidak ada, muat ulang halaman sekali, tunggu beberapa detik, lalu coba lagi.</p>');
+    }
+  });
+  document.getElementById('im-close').addEventListener('click',function(){ modal.hidden=true; });
+  modal.addEventListener('click',function(e){ if(e.target===modal) modal.hidden=true; });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') modal.hidden=true; });
+})();
+</script>
 <script>if("serviceWorker" in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
 </body>
 </html>
