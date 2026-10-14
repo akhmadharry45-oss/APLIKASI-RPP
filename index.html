@@ -139,7 +139,7 @@ select{width:100%;border:1px solid var(--line);background:var(--surface);border-
   <section id="pane-susun" role="tabpanel" aria-labelledby="tab-susun" style="display:flex;flex-direction:column;gap:18px">
 
     <div class="notice" id="sample-note" hidden>
-      <p>Isian di bawah adalah contoh dari RPP SD Negeri 1 Barabai Timur yang Anda lampirkan. Kosongkan untuk mulai dari nol, atau unggah foto materi dan minta Claude menyusunnya.</p>
+      <p>Isian di bawah adalah contoh dari RPP SD Negeri 1 Barabai Timur yang Anda lampirkan. Kosongkan untuk mulai dari nol, atau unggah foto materi dan minta AI menyusunnya.</p>
       <button type="button" class="btn small" id="btn-blank">Kosongkan formulir</button>
     </div>
 
@@ -190,8 +190,10 @@ select{width:100%;border:1px solid var(--line);background:var(--surface);border-
         </div>
         <div id="manual-actions" style="display:flex;flex-direction:column;gap:12px" hidden>
           <div class="field"><label for="chatbot">Chatbot yang dibuka</label>
-            <select id="chatbot"><option value="https://chatgpt.com/">ChatGPT</option><option value="https://gemini.google.com/app">Gemini</option><option value="https://claude.ai/new">Claude</option></select></div>
+            <select id="chatbot"><option value="https://chatgpt.com/">ChatGPT</option><option value="https://gemini.google.com/app">Gemini</option></select></div>
           <div class="row"><button type="button" class="btn primary" id="btn-ai-manual">Buat dengan AI</button><button type="button" class="btn" id="btn-copy">Salin perintah saja</button></div>
+          <p class="aimsg" id="manual-msg" role="status" aria-live="polite"></p>
+          <div class="row" id="open-links" hidden></div>
           <textarea id="promptbox" rows="6" readonly hidden aria-label="Perintah untuk AI"></textarea>
           <div class="field"><label for="paste">Jawaban dari AI</label><textarea id="paste" rows="5" placeholder="Tempel jawaban AI di sini. Bentuknya teks JSON yang diawali tanda {"></textarea></div>
           <div class="row"><button type="button" class="btn primary" id="btn-apply">Isi formulir dari jawaban</button></div>
@@ -643,16 +645,16 @@ CONTOH BENTUK DAN GAYA:
 ${ex}`;
 }
 const ERR = {
-  not_granted: 'Izin untuk memakai Claude belum diberikan. Muat ulang halaman dan izinkan saat diminta.',
-  sampling_disabled: 'Claude tidak tersedia untuk akun ini.',
+  not_granted: 'Izin untuk memakai AI belum diberikan. Muat ulang halaman dan izinkan saat diminta.',
+  sampling_disabled: 'AI tidak tersedia untuk akun ini.',
   rate_limited: 'Terlalu sering atau batas pemakaian tercapai. Coba lagi beberapa saat lagi.',
   session_expired: 'Sesi berakhir. Masuk kembali lalu coba lagi.',
   image_rejected: 'Ada foto yang tidak bisa dibaca. Hapus foto itu atau ganti dengan berkas lain.',
-  refused: 'Claude tidak dapat memproses isi ini. Ubah foto atau catatan lalu coba lagi.',
-  empty_completion: 'Claude tidak menghasilkan teks. Tambahkan catatan topik lalu coba lagi.',
-  invalid_json: 'Hasil dari Claude tidak lengkap. Tekan Buat RPP sekali lagi, atau kurangi jumlah foto.',
+  refused: 'AI tidak dapat memproses isi ini. Ubah foto atau catatan lalu coba lagi.',
+  empty_completion: 'AI tidak menghasilkan teks. Tambahkan catatan topik lalu coba lagi.',
+  invalid_json: 'Hasil dari AI tidak lengkap. Tekan Buat dengan AI sekali lagi, atau kurangi jumlah foto.',
   prompt_too_large: 'Isian terlalu panjang. Persingkat catatan.',
-  upstream_error: 'Koneksi ke Claude terputus. Coba lagi.'
+  upstream_error: 'Koneksi ke AI terputus. Coba lagi.'
 };
 async function generate() {
   if (running) return;
@@ -662,7 +664,7 @@ async function generate() {
   running = true; ctl = new AbortController();
   $('#btn-gen').disabled = true; $('#btn-stop').hidden = false; $('#btn-undo').hidden = true;
   aimsg(''); $('#progress').textContent = 'Menunggu AI…';
-  const opts = { signal: ctl.signal, onText: ({ text }) => { $('#progress').textContent = 'Claude sedang menyusun… ' + text.length.toLocaleString('id-ID') + ' karakter'; } };
+  const opts = { signal: ctl.signal, onText: ({ text }) => { $('#progress').textContent = 'AI sedang menyusun… ' + text.length.toLocaleString('id-ID') + ' karakter'; } };
   if (imgs.length) opts.images = imgs.map(i => i.file);
   try {
     const out = PROV() === 'claude' ? await sampleFn.json(buildPrompt(catatan), opts) : await callExternal(buildPrompt(catatan), imgs.map(i => i.file), ctl.signal);
@@ -861,31 +863,36 @@ async function addFiles(list) {
   if (bad.length) parts.push('Tidak ditambahkan: ' + bad.join('; ') + '.');
   aimsg(parts.join(' '), bad.length ? 'err' : '');
 }
-async function openChatbot() {
+const CHATBOTS = { 'https://chatgpt.com/': 'ChatGPT', 'https://gemini.google.com/app': 'Gemini' };
+function mmsg(t, k) { const el = $('#manual-msg'); if (!el) return; el.textContent = t || ''; el.className = 'aimsg' + (k ? ' ' + k : ''); }
+async function putPrompt(open) {
   const text = buildPrompt($('#catatan').value.trim());
-  const box = $('#promptbox');
-  const cp = (navigator.clipboard && navigator.clipboard.writeText) ? navigator.clipboard.writeText(text) : Promise.reject(new Error('no clipboard'));
-  window.open($('#chatbot').value, '_blank', 'noopener');
-  try {
-    await cp; box.hidden = true;
-    aimsg('Perintah sudah disalin dan chatbot dibuka di tab baru. Tempel perintahnya di sana, lampirkan foto bila ada, lalu kirim. Jika tab tidak terbuka, buka sendiri chatbot-nya.', 'ok');
-  } catch (e) {
-    box.value = text; box.hidden = false; box.focus(); box.select();
-    aimsg('Salin otomatis tidak diizinkan. Teks perintah sudah dipilih: tekan Ctrl+C (atau Salin), lalu tempel di chatbot.', 'err');
-  }
+  const url = $('#chatbot').value, name = CHATBOTS[url] || 'chatbot';
+  const box = $('#promptbox'), links = $('#open-links');
+  let w = null;
+  if (open) { try { w = window.open(url, '_blank'); if (w) w.opener = null; } catch (e) { w = null; } }
+  box.value = text; box.hidden = false;
+  links.innerHTML = '<a class="btn small" href="' + url + '" target="_blank" rel="noopener">Buka ' + name + '</a>'; links.hidden = false;
+  let copied = false;
+  try { await navigator.clipboard.writeText(text); copied = true; } catch (e) { copied = false; }
+  if (!copied) { box.focus(); box.select(); }
+  if (copied && open && w) mmsg('Perintah sudah disalin dan ' + name + ' dibuka di tab baru. Tempel di kolom chat (Ctrl+V, atau tekan lama lalu Tempel), lalu kirim.', 'ok');
+  else if (copied && open) mmsg('Perintah sudah disalin, tetapi tab baru diblokir di sini. Tekan "Buka ' + name + '" di bawah, lalu tempel perintahnya.', 'ok');
+  else if (copied) mmsg('Perintah sudah disalin. Buka chatbot lalu tempel di kolom chat.', 'ok');
+  else mmsg('Perintah belum bisa disalin otomatis di sini. Teks pada kotak di bawah sudah dipilih: tekan Ctrl+C (atau tekan lama lalu Salin)' + (open ? ', tekan "Buka ' + name + '"' : '') + ', lalu tempel di chatbot.', 'err');
 }
-
+async function openChatbot() { return putPrompt(true); }
 function applyPasted() {
   const raw = $('#paste').value.trim();
-  if (!raw) { aimsg('Tempel jawaban dari AI terlebih dahulu.', 'err'); return; }
-  let out; try { out = parseLoose(raw); } catch (e) { aimsg('Jawaban belum berbentuk JSON yang utuh. Minta AI mengirim ulang hanya objek JSON-nya, lalu tempel lagi.', 'err'); return; }
-  if (!out || typeof out !== 'object' || Array.isArray(out)) { aimsg('Jawaban itu bukan objek JSON RPP.', 'err'); return; }
+  if (!raw) { mmsg('Tempel jawaban dari AI terlebih dahulu.', 'err'); return; }
+  let out; try { out = parseLoose(raw); } catch (e) { mmsg('Jawaban belum berbentuk JSON yang utuh. Minta AI mengirim ulang hanya objek JSON-nya, lalu tempel lagi.', 'err'); return; }
+  if (!out || typeof out !== 'object' || Array.isArray(out)) { mmsg('Jawaban itu bukan objek JSON RPP.', 'err'); return; }
   const n = normalize(out);
   for (const k of ['sekolah', 'guru', 'mapel', 'kelas', 'alokasi']) if (state[k].trim()) n[k] = state[k];
   prevState = state; state = n; state._contoh = false;
   fillForm(); save(); $('#btn-undo').hidden = false;
   const cat = str(out.catatan);
-  aimsg('RPP sudah diisi dari jawaban AI. Periksa tiap bagian, lalu buka Pratinjau atau unduh.' + (cat ? ' Catatan AI: ' + cat : ''), 'ok');
+  mmsg('RPP sudah diisi dari jawaban AI. Gulir ke bawah untuk memeriksa tiap bagian, lalu buka Pratinjau atau unduh.' + (cat ? ' Catatan AI: ' + cat : ''), 'ok');
 }
 async function copyImage(im) {
   if (!im) return;
@@ -900,12 +907,7 @@ async function copyImage(im) {
     aimsg('Foto disalin. Tempel (Ctrl+V) di kotak chat chatbot.', 'ok');
   } catch (e) { aimsg('Foto tidak bisa disalin otomatis di perangkat ini. Lampirkan fotonya langsung dari galeri atau folder di chatbot.', 'err'); }
 }
-async function copyPrompt() {
-  const text = buildPrompt($('#catatan').value.trim());
-  const box = $('#promptbox');
-  try { await navigator.clipboard.writeText(text); box.hidden = true; aimsg('Perintah disalin. Tempel di chatbot dan lampirkan foto bila ada.', 'ok'); }
-  catch (e) { box.value = text; box.hidden = false; box.focus(); box.select(); aimsg('Salin otomatis tidak diizinkan. Teks perintah sudah dipilih: tekan Ctrl+C lalu tempel di chatbot.', 'err'); }
-}
+async function copyPrompt() { return putPrompt(false); }
 
 /* ---------- wiring ---------- */
 function init() {
@@ -991,14 +993,13 @@ function init() {
   $('#btn-apply').addEventListener('click', applyPasted);
   const fill = () => {
     const opts = [];
-    if (sampleFn) opts.push(['claude', 'Claude (di dalam aplikasi Claude)']);
     opts.push(['manual', 'Tanpa kunci API: salin perintah ke chatbot, lalu tempel hasilnya'], ['gemini', 'Google Gemini (bisa mencari referensi di internet)'], ['openai', 'OpenAI atau layanan yang kompatibel']);
     $('#prov').innerHTML = opts.map(([v, l]) => '<option value="' + v + '">' + l + '</option>').join('');
     $('#prov').value = opts.some(o => o[0] === cfg.prov) ? cfg.prov : opts[0][0];
     applyProv();
   };
   fill();
-  use('sample').then(async s => {
+  Promise.resolve(null).then(async s => {
     if (!s) return;
     sampleFn = s;
     try { const l = await s.limits(); if (l && l.images) claudeLimits = l.images; } catch (e) { /* no images */ }
