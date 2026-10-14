@@ -102,6 +102,13 @@ input[type="text"]:focus,textarea:focus{outline:none;border-color:var(--accent);
 #ai-status.err{color:var(--danger)}
 #ai-status.ok{color:var(--ok)}
 .ai-extra{display:flex;flex-wrap:wrap;gap:6px 22px;padding-top:2px}
+.ainote{font-size:13.5px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin:0}
+.keybox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 13px}
+.keybox summary{cursor:pointer;font-weight:700;font-size:14px}
+.keybox[open]{display:flex;flex-direction:column;gap:12px}
+.keybox[open] summary{margin-bottom:-2px}
+.chk{display:flex;align-items:center;gap:9px;font-size:14px}
+.chk input{width:18px;height:18px;accent-color:var(--accent)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;opacity:0}
 .drop{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:18px 16px;border:1.5px dashed var(--accent);border-radius:12px;background:var(--surface)}
 .drop.over{background:var(--accent-soft);border-style:solid}
@@ -215,6 +222,13 @@ input[type="text"]:focus,textarea:focus{outline:none;border-color:var(--accent);
         <button type="button" class="btn quiet" id="ai-stop" hidden>Hentikan</button>
         <span id="ai-status" role="status" aria-live="polite"></span>
       </div>
+      <p class="ainote" id="ai-note" hidden></p>
+      <details class="keybox" id="keybox" hidden>
+        <summary>Pakai kunci API sendiri</summary>
+        <p class="hint">Untuk berkas HTML yang dibuka di luar Claude. Kunci dikirim langsung ke Anthropic dan tidak masuk ke isian RPP. Jangan isi kunci di halaman yang Anda bagikan ke orang lain.</p>
+        <div class="fld"><label for="f-apikey">Kunci API Anthropic</label><input id="f-apikey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-..."></div>
+        <label class="chk"><input type="checkbox" id="f-remember"> Ingat kunci di browser ini</label>
+      </details>
       <div class="ai-extra">
         <button type="button" class="linkbtn" data-act="example">Muat contoh RPP (Bahasa Indonesia kelas III)</button>
         <button type="button" class="linkbtn warn" data-act="clear" id="btn-clear">Kosongkan formulir</button>
@@ -665,9 +679,65 @@ drop.addEventListener('drop',e=>{ if(e.dataTransfer&&e.dataTransfer.files) addFi
 const claudeUse=name=>{ try{ return (window.claude&&window.claude.use)?window.claude.use(name).catch(()=>null):Promise.resolve(null); }catch(e){ return Promise.resolve(null); } };
 const samplePromise=claudeUse('sample');
 const dlPromise=claudeUse('downloads');
-samplePromise.then(s=>{ if(!s){ $('#ai-run').disabled=true; setStatus('Fitur AI hanya tersedia saat halaman dibuka di Claude. Anda tetap bisa mengisi formulir sendiri.',''); } });
+const STANDALONE=!window.claude;
+const KEY_STORE='rpp-mendalam-apikey-v1';
+const MODEL='claude-sonnet-5-5';
+let apiKey='';
+try{ apiKey=localStorage.getItem(KEY_STORE)||''; }catch(e){}
+function setNote(msg){ const el=$('#ai-note'); el.textContent=msg||''; el.hidden=!msg; }
+if(STANDALONE){
+  $('#keybox').hidden=false;
+  if(apiKey){ $('#f-apikey').value=apiKey; $('#f-remember').checked=true; }
+  setNote(apiKey?'Berkas ini memakai kunci API Anda untuk membuat RPP.':'AI bawaan hanya aktif saat halaman dibuka di Claude. Di berkas ini, isi kunci API Anda di bagian "Pakai kunci API sendiri", atau buka halaman ini lewat tautan di Claude.');
+}
+$('#f-apikey').addEventListener('input',e=>{
+  apiKey=e.target.value.trim();
+  try{ if($('#f-remember').checked) localStorage.setItem(KEY_STORE,apiKey); }catch(err){}
+  if(STANDALONE) setNote(apiKey?'Berkas ini memakai kunci API Anda untuk membuat RPP.':'AI bawaan hanya aktif saat halaman dibuka di Claude. Isi kunci API Anda di bagian "Pakai kunci API sendiri".');
+});
+$('#f-remember').addEventListener('change',e=>{
+  try{ if(e.target.checked) localStorage.setItem(KEY_STORE,apiKey); else localStorage.removeItem(KEY_STORE); }catch(err){}
+});
+samplePromise.then(s=>{ if(!s&&!STANDALONE) setNote('AI tidak tersedia di tampilan ini. Buka halaman ini langsung di claude.ai dan beri izin saat diminta. Formulir tetap bisa diisi sendiri.'); });
 
 function setStatus(msg,cls){ const el=$('#ai-status'); el.textContent=msg; el.className=cls||''; }
+function parseJson(text){
+  const t=String(text||'').trim();
+  try{ return JSON.parse(t); }catch(e){}
+  const f=t.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if(f){ try{ return JSON.parse(f[1]); }catch(e){} }
+  const a=t.indexOf('{'), b=t.lastIndexOf('}');
+  if(a>-1&&b>a){ try{ return JSON.parse(t.slice(a,b+1)); }catch(e){} }
+  throw {code:'invalid_json'};
+}
+async function shrinkImg(blob){
+  try{
+    const bm=await createImageBitmap(blob), sc=Math.min(1,1600/Math.max(bm.width,bm.height));
+    const cv=document.createElement('canvas'); cv.width=Math.max(1,Math.round(bm.width*sc)); cv.height=Math.max(1,Math.round(bm.height*sc));
+    cv.getContext('2d').drawImage(bm,0,0,cv.width,cv.height);
+    const out=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.85));
+    if(out) return out;
+  }catch(e){}
+  return blob;
+}
+function blobB64(blob){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]); r.onerror=()=>rej(r.error); r.readAsDataURL(blob); }); }
+async function callApi(key,prompt,imgs,signal){
+  const content=[];
+  for(const b of imgs){
+    const s=await shrinkImg(b);
+    if(s.size>4800000||IMG_TYPES.indexOf(s.type)<0) continue;
+    content.push({type:'image',source:{type:'base64',media_type:s.type,data:await blobB64(s)}});
+  }
+  content.push({type:'text',text:prompt});
+  let res;
+  try{
+    res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:signal,headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:MODEL,max_tokens:8000,messages:[{role:'user',content:content}]})});
+  }catch(e){ if(e&&e.name==='AbortError') throw {code:'cancelled'}; throw {code:'network'}; }
+  const j=await res.json().catch(()=>null);
+  if(!res.ok) throw {code:'api_'+res.status,msg:j&&j.error&&j.error.message};
+  if(j.stop_reason==='max_tokens') throw {code:'invalid_json'};
+  return parseJson((j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join(''));
+}
 const SCHEMA={peserta:'teks',materi:'teks',dpl:[1,3],cp:'teks',lintas:'teks',tujuan:'teks',topik:'teks',pedagogis:'teks',kemitraan:'teks',lingkungan:'teks',digital:'teks',
   awalPrinsip:'teks',awal:['langkah'],pahamPrinsip:'teks',paham:['langkah'],aplikPrinsip:'teks',aplik:['langkah'],refleksPrinsip:'teks',refleks:['langkah'],penutupPrinsip:'teks',penutup:['langkah'],
   asesAwal:'teks',asesProses:'teks',asesAkhir:'teks',rubrikNama:'teks',rubrikTujuan:'teks',rubrik:[{indikator:'teks',l1:'teks',l2:'teks',l3:'teks',l4:'teks'}]};
@@ -715,18 +785,28 @@ const AI_ERR={
   empty_completion:'AI tidak mengembalikan jawaban. Ubah topik lalu coba lagi.',
   prompt_too_large:'Isian terlalu panjang. Persingkat topik atau catatan, atau kurangi materi.',
   image_rejected:'Salah satu gambar ditolak. Hapus gambar itu lalu coba lagi.',
-  images_unavailable:'Gambar tidak bisa dikirim di tampilan ini. Hapus foto dan unggah teks saja.'
+  images_unavailable:'Gambar tidak bisa dikirim di tampilan ini. Hapus foto dan unggah teks saja.',
+  network:'Tidak bisa terhubung ke Anthropic. Periksa koneksi internet Anda.',
+  api_401:'Kunci API ditolak. Periksa kunci Anda lalu coba lagi.',
+  api_403:'Kunci API tidak punya izin untuk permintaan ini.',
+  api_429:'Batas pemakaian kunci API tercapai. Coba lagi beberapa saat lagi.',
+  api_413:'Isian terlalu besar. Kurangi jumlah atau ukuran materi.'
 };
 let ctl=null;
 async function runAI(){
   const sample=await samplePromise;
-  if(!sample){ setStatus('Fitur AI hanya tersedia saat halaman dibuka di Claude.','err'); return; }
+  if(!sample&&!apiKey){
+    if(STANDALONE){ setStatus('Isi kunci API Anda dulu, di bagian "Pakai kunci API sendiri" di bawah tombol.','err'); const kb=$('#keybox'); kb.open=true; $('#f-apikey').focus(); }
+    else setStatus('AI tidak tersedia di tampilan ini. Buka halaman ini langsung di claude.ai.','err');
+    return;
+  }
   if(M.some(m=>m.status==='Membaca…')){ setStatus('Tunggu sampai semua berkas selesai dibaca.','err'); return; }
   const ready=M.filter(m=>!m.bad);
   if(!String(S.aiTopik||'').trim()&&!ready.length){ setStatus('Isi topik atau unggah materi terlebih dahulu.','err'); $('#f-aiTopik').focus(); return; }
   let blobs=[], block='', notes=[];
   let imgLimit=null;
-  try{ const lim=await sample.limits(); imgLimit=lim&&lim.images?lim.images:null; }catch(e){}
+  if(sample){ try{ const lim=await sample.limits(); imgLimit=lim&&lim.images?lim.images:null; }catch(e){} }
+  else imgLimit={maxCount:8,maxInputBytes:MAX_BYTES};
   ready.forEach(m=>{
     if(m.text){ const room=MAX_TEXT-block.length; if(room>200) block+='--- Berkas: '+m.name+' ---\n'+m.text.slice(0,room)+'\n\n'; else notes.push('Teks '+m.name+' tidak ikut karena terlalu panjang.'); }
     m.images.forEach(b=>blobs.push({b:b,name:m.name}));
@@ -743,22 +823,25 @@ async function runAI(){
   ctl=new AbortController();
   const run=$('#ai-run'), stop=$('#ai-stop');
   run.disabled=true; stop.hidden=false;
-  let fatal=false;
   setStatus('Menyusun RPP. Biasanya butuh sekitar satu menit.','');
   try{
-    const opts={signal:ctl.signal,cache:false,onText:({text})=>{ setStatus('Menyusun RPP… '+Math.max(1,Math.round(text.length/1000))+' rb karakter tertulis',''); }};
-    if(blobs.length) opts.images=blobs.map(x=>x.b);
-    const data=await sample.json(buildPrompt(extra),opts);
+    let data;
+    if(sample){
+      const opts={signal:ctl.signal,cache:false,onText:({text})=>{ setStatus('Menyusun RPP… '+Math.max(1,Math.round(text.length/1000))+' rb karakter tertulis',''); }};
+      if(blobs.length) opts.images=blobs.map(x=>x.b);
+      data=await sample.json(buildPrompt(extra),opts);
+    }else{
+      data=await callApi(apiKey,buildPrompt(extra),blobs.map(x=>x.b),ctl.signal);
+    }
     applyAI(data);
     refreshAll(); saveSoon();
     setStatus('Selesai. Periksa dan sesuaikan isinya sebelum dipakai.'+(notes.length?' '+notes.join(' '):''),'ok');
   }catch(e){
     const code=e&&e.code;
     if(code==='cancelled') setStatus('Dihentikan.','');
-    else setStatus(AI_ERR[code]||'Terjadi gangguan saat menghubungi AI. Coba lagi.','err');
-    fatal=['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].indexOf(code)>-1;
+    else setStatus(AI_ERR[code]||(e&&e.msg)||'Terjadi gangguan saat menghubungi AI. Coba lagi.','err');
   }finally{
-    stop.hidden=true; ctl=null; run.disabled=fatal;
+    stop.hidden=true; ctl=null; run.disabled=false;
   }
 }
 $('#ai-run').addEventListener('click',runAI);
