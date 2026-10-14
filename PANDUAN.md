@@ -24,5 +24,6 @@ Tinjauan Google bisa memakan waktu beberapa hari.
 
 ## Catatan
 - Mode "Tanpa kunci API" tersedia untuk yang tidak punya kunci. Kunci API Gemini atau OpenAI diisi oleh tiap pengguna di dalam aplikasi, tidak ikut tertanam di berkas.
+- Materi bisa diunggah sebagai foto, PDF, Word (.docx), atau teks. Membaca PDF butuh internet saat pertama kali.
 - Pembuatan RPP otomatis butuh internet. Formulir, pratinjau, dan unduhan Word tetap bisa dipakai setelah aplikasi pernah dibuka.
 - Ganti isi berkas index.html bila ada pembaruan. Pengguna menerima versi baru saat membuka aplikasi dengan internet.

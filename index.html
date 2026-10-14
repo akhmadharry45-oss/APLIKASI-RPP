@@ -119,6 +119,10 @@ select{width:100%;border:1px solid var(--line);background:var(--surface);border-
 .chk{display:flex;gap:8px;align-items:flex-start;font-size:.92rem}
 .chk input{margin-top:.3rem;accent-color:var(--accent)}
 .thumb .cp{top:auto;bottom:3px;left:3px;right:3px;width:auto;height:22px;border-radius:6px;font-size:12px;font-weight:600}
+.doc{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface);max-width:100%}
+.doc .dn{font-weight:600;overflow-wrap:anywhere;min-width:0}
+.doc .dc{font-family:var(--font-mono);font-size:.78rem;color:var(--muted);white-space:nowrap}
+.doc button{border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:var(--muted)}
 </style></head><body>
 
 <header class="bar"><div class="bar-in">
@@ -146,7 +150,7 @@ select{width:100%;border:1px solid var(--line);background:var(--surface);border-
 
     <div class="card ai" id="ai-card">
       <h2>Buat otomatis dengan AI</h2>
-      <p class="sub">Unggah foto halaman buku, CP, TP, atau modul ajar. AI membaca tulisannya lalu mengisi semua bagian RPP di bawah. Hasilnya tetap bisa Anda ubah.</p>
+      <p class="sub">Unggah materi berupa foto, PDF, Word (.docx), atau teks: halaman buku, CP, TP, atau modul ajar. AI membaca tulisannya lalu mengisi semua bagian RPP di bawah. Hasilnya tetap bisa Anda ubah.</p>
       <div id="ai-body" style="display:flex;flex-direction:column;gap:12px">
         <div class="field"><label for="prov">Mesin AI</label><select id="prov"></select></div>
         <div id="opt-ext" style="display:flex;flex-direction:column;gap:12px" hidden>
@@ -159,25 +163,23 @@ select{width:100%;border:1px solid var(--line);background:var(--surface);border-
           <label class="chk"><input type="checkbox" id="remember"><span>Ingat kunci API di perangkat ini. Jangan centang di komputer bersama.</span></label>
           <p class="hint">Kunci dan foto dikirim langsung dari peramban Anda ke penyedia AI, tidak lewat server lain. Nama model bisa berubah, ganti sesuai yang tersedia di akun Anda.</p>
         </div>
-        <div id="opt-manual" style="display:flex;flex-direction:column;gap:12px" hidden>
+        <div id="opt-manual" hidden>
           <ol class="sub" style="margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:2px">
-            <li>Isi catatan topik atau teks referensi di bawah (opsional), lalu tekan "Salin perintah untuk AI".</li>
-            <li>Buka chatbot yang Anda punya (Gemini, ChatGPT, atau Claude), tempel perintahnya, lampirkan foto materi (foto yang Anda unggah di bawah bisa disalin dengan tombol Salin), lalu kirim.</li>
-            <li>Salin jawaban AI, tempel di kotak "Jawaban dari AI", lalu tekan "Isi formulir dari jawaban".</li>
+            <li>Unggah materi di bawah (foto, PDF, Word .docx, atau teks) dan isi catatan bila perlu.</li>
+            <li>Tekan "Buat dengan AI". Perintah disalin dan chatbot terbuka di tab baru.</li>
+            <li>Tempel perintah di chatbot, lampirkan foto bila ada, kirim, lalu salin jawabannya.</li>
+            <li>Tempel jawaban di kotak "Jawaban dari AI", lalu tekan "Isi formulir dari jawaban".</li>
           </ol>
-          <div class="row"><button type="button" class="btn" id="btn-copy">Salin perintah untuk AI</button></div>
-          <textarea id="promptbox" rows="6" readonly hidden aria-label="Perintah untuk AI"></textarea>
-          <div class="field"><label for="paste">Jawaban dari AI</label><textarea id="paste" rows="5" placeholder="Tempel jawaban AI di sini. Bentuknya teks JSON yang diawali tanda {"></textarea></div>
-          <div class="row"><button type="button" class="btn primary" id="btn-apply">Isi formulir dari jawaban</button></div>
         </div>
         <div id="drop-wrap" hidden>
           <label class="drop" id="drop" for="file-in">
-            <strong>Tarik foto ke sini atau pilih berkas</strong>
+            <strong>Tarik materi ke sini atau pilih berkas</strong>
             <span class="sub" id="drop-hint">JPG, PNG, WebP, atau GIF</span>
             <input class="sr" type="file" id="file-in" multiple>
           </label>
         </div>
         <div class="thumbs" id="thumbs"></div>
+        <div class="thumbs" id="docs"></div>
         <div class="field">
           <label for="referensi">Teks referensi dari sumber lain (opsional)</label>
           <textarea id="referensi" rows="3" placeholder="Tempel di sini isi CP, TP, atau materi yang Anda salin dari situs resmi atau buku."></textarea>
@@ -186,8 +188,16 @@ select{width:100%;border:1px solid var(--line);background:var(--surface);border-
           <label for="catatan">Catatan atau topik (opsional)</label>
           <textarea id="catatan" rows="3" placeholder="Contoh: kelas 3, satu pertemuan, fokus menyimak teks cerita, kelompok kecil."></textarea>
         </div>
+        <div id="manual-actions" style="display:flex;flex-direction:column;gap:12px" hidden>
+          <div class="field"><label for="chatbot">Chatbot yang dibuka</label>
+            <select id="chatbot"><option value="https://chatgpt.com/">ChatGPT</option><option value="https://gemini.google.com/app">Gemini</option><option value="https://claude.ai/new">Claude</option></select></div>
+          <div class="row"><button type="button" class="btn primary" id="btn-ai-manual">Buat dengan AI</button><button type="button" class="btn" id="btn-copy">Salin perintah saja</button></div>
+          <textarea id="promptbox" rows="6" readonly hidden aria-label="Perintah untuk AI"></textarea>
+          <div class="field"><label for="paste">Jawaban dari AI</label><textarea id="paste" rows="5" placeholder="Tempel jawaban AI di sini. Bentuknya teks JSON yang diawali tanda {"></textarea></div>
+          <div class="row"><button type="button" class="btn primary" id="btn-apply">Isi formulir dari jawaban</button></div>
+        </div>
         <div class="row">
-          <button type="button" class="btn primary" id="btn-gen">Buat RPP</button>
+          <button type="button" class="btn primary" id="btn-gen">Buat dengan AI</button>
           <button type="button" class="btn" id="btn-stop" hidden>Berhenti</button>
           <button type="button" class="btn" id="btn-undo" hidden>Kembalikan isian sebelumnya</button>
           <span class="progress" id="progress"></span>
@@ -594,18 +604,6 @@ const aimsg = (t, k) => { const el = $('#aimsg'); el.textContent = t || ''; el.c
 function renderThumbs() {
   $('#thumbs').innerHTML = imgs.map((im, i) => `<div class="thumb"><img src="${im.url}" alt="Foto ${i + 1}">${PROV() === 'manual' ? `<button type="button" class="cp" data-cp="${i}">Salin</button>` : ''}<button type="button" data-rm="${i}" aria-label="Hapus foto ${i + 1}">×</button></div>`).join('');
 }
-function addFiles(list) {
-  if (!imgLimits) return;
-  const bad = [];
-  for (const f of list) {
-    if (!imgLimits.mediaTypes.includes(f.type)) { bad.push(f.name + ' (jenis berkas tidak didukung)'); continue; }
-    if (f.size > imgLimits.maxInputBytes) { bad.push(f.name + ' (terlalu besar)'); continue; }
-    if (imgs.length >= imgLimits.maxCount) { bad.push('Batas ' + imgLimits.maxCount + ' foto tercapai'); break; }
-    imgs.push({ file: f, url: URL.createObjectURL(f) });
-  }
-  renderThumbs();
-  aimsg(bad.length ? 'Tidak ditambahkan: ' + bad.join('; ') + '.' : '', bad.length ? 'err' : '');
-}
 function buildPrompt(catatan) {
   const ident = [['Sekolah', state.sekolah], ['Nama guru', state.guru], ['Mata pelajaran', state.mapel], ['Kelas / semester', state.kelas], ['Alokasi waktu', state.alokasi]]
     .filter(([, v]) => v).map(([k, v]) => `- ${k}: ${v}`).join('\n') || '- (belum diisi)';
@@ -622,11 +620,14 @@ REFERENSI TAMBAHAN DARI GURU (teks dari sumber lain, pakai bila relevan):
 ${($('#referensi').value || '').trim().slice(0, 12000) || '(tidak ada)'}
 ${(PROV() === 'gemini' && $('#websearch').checked) ? '\nPENCARIAN INTERNET: gunakan pencarian untuk memeriksa rujukan resmi (misalnya Capaian Pembelajaran dari Kemendikdasmen/BSKAP dan buku teks resmi) lalu sesuaikan CP, TP, dan materi. Tulis sumber yang dipakai di "catatan".\n' : ''}
 
+BERKAS MATERI YANG DIUNGGAH (teks hasil ekstraksi):
+${docsText()}
+
 GAMBAR TERLAMPIR: ${PROV() === 'manual' ? 'periksa lampiran pada pesan ini bila ada (halaman buku, CP, TP, ATP, modul ajar, atau catatan)' : (imgs.length ? imgs.length + ' gambar (halaman buku, CP, TP, ATP, modul ajar, atau catatan)' : 'tidak ada')}
 
 ATURAN:
 1. Tulis dalam bahasa Indonesia baku yang sesuai jenjang dan kelas.
-2. Bila ada gambar, baca seluruh tulisannya dan jadikan itu sumber utama materi, capaian pembelajaran, dan tujuan. Jangan mengarang materi yang bertentangan dengan gambar.
+2. Bila ada gambar atau teks berkas materi, baca seluruh isinya dan jadikan itu sumber utama materi, capaian pembelajaran, dan tujuan. Jangan mengarang materi yang bertentangan dengan gambar.
 3. Isian identitas yang kosong: ambil dari gambar bila tertulis, jika tidak ada isi dengan "".
 4. "dpl" berisi angka 1 sampai 8: 1 Keimanan dan ketakwaan, 2 Kewargaan, 3 Penalaran Kritis, 4 Kreativitas, 5 Kolaborasi, 6 Kemandirian, 7 Kesehatan, 8 Komunikasi. Pilih yang benar-benar dilatih, biasanya 3 sampai 5.
 5. Tujuan pembelajaran memuat subjek, kata kerja operasional yang terukur, konteks, dan tingkat pencapaian. Bila lebih dari satu pertemuan, tulis satu tujuan per baris yang diawali "Pertemuan 1:", "Pertemuan 2:", dan seterusnya, lalu sesuaikan kegiatan.
@@ -657,7 +658,7 @@ async function generate() {
   if (running) return;
   if (PROV() === 'claude' && !sampleFn) { aimsg('Claude tidak tersedia di sini. Pilih mesin AI lain.', 'err'); return; }
   const catatan = $('#catatan').value.trim();
-  if (!imgs.length && !catatan && !state.mapel.trim() && !state.topik.trim()) { aimsg('Unggah foto materi atau tulis catatan topik terlebih dahulu.', 'err'); return; }
+  if (!imgs.length && !docs.length && !catatan && !state.mapel.trim() && !state.topik.trim()) { aimsg('Unggah foto materi atau tulis catatan topik terlebih dahulu.', 'err'); return; }
   running = true; ctl = new AbortController();
   $('#btn-gen').disabled = true; $('#btn-stop').hidden = false; $('#btn-undo').hidden = true;
   aimsg(''); $('#progress').textContent = 'Menunggu AI…';
@@ -741,6 +742,137 @@ async function callExternal(prompt, files, signal) {
     ? ((data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || []).map(x => x.text || '').join('')
     : (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content);
   return parseLoose(text);
+}
+
+/* ---------- uploaded materials: photos, PDF, Word, text ---------- */
+let docs = [];
+const DOC_MAX = 40000, DOC_TOTAL = 60000;
+function renderDocs() {
+  $('#docs').innerHTML = docs.map((d, i) => '<div class="doc"><span class="dn">' + hx(d.name) + '</span><span class="dc">' + d.chars.toLocaleString('id-ID') + ' karakter</span><button type="button" data-rd="' + i + '" aria-label="Hapus ' + hx(d.name) + '">×</button></div>').join('');
+}
+function docsText() {
+  if (!docs.length) return '(tidak ada)';
+  let left = DOC_TOTAL;
+  return docs.map(d => { const t = d.text.slice(0, Math.max(0, left)); left -= t.length; return '--- ' + d.name + ' ---\n' + t; }).join('\n\n');
+}
+async function inflateRaw(u8) {
+  const stream = new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function docxText(file) {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  let e = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) { if (dv.getUint32(i, true) === 0x06054b50) { e = i; break; } }
+  if (e < 0) throw new Error('bukan berkas docx');
+  const n = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true);
+  const dec = new TextDecoder();
+  for (let k = 0; k < n; k++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), off = dv.getUint32(p + 42, true);
+    const name = dec.decode(buf.subarray(p + 46, p + 46 + nl));
+    if (name === 'word/document.xml') {
+      const start = off + 30 + dv.getUint16(off + 26, true) + dv.getUint16(off + 28, true);
+      const raw = buf.subarray(start, start + csize);
+      const xml = dec.decode(method === 0 ? raw : await inflateRaw(raw));
+      return xml.replace(/<w:tab\/>/g, '\t').replace(/<w:br\/>/g, '\n').replace(/<\/w:p>/g, '\n').replace(/<\/w:tc>/g, '\t').replace(/<[^>]+>/g, '')
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&')
+        .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    }
+    p += 46 + nl + el + cl;
+  }
+  throw new Error('isi dokumen tidak ditemukan');
+}
+let pdfLibP = null;
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (pdfLibP) return pdfLibP;
+  pdfLibP = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => {
+      const L = window.pdfjsLib; if (!L) { pdfLibP = null; rej(new Error('pdfjs')); return; }
+      const w = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      L.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob(['importScripts("' + w + '");'], { type: 'text/javascript' }));
+      res(L);
+    };
+    s.onerror = () => { pdfLibP = null; rej(new Error('pdfjs load')); };
+    document.head.appendChild(s);
+  });
+  return pdfLibP;
+}
+async function pdfText(file) {
+  const L = await loadPdfJs();
+  const pdf = await L.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  let out = '';
+  for (let i = 1; i <= Math.min(pdf.numPages, 40); i++) {
+    const pg = await pdf.getPage(i); const tc = await pg.getTextContent();
+    out += tc.items.map(x => x.str).join(' ') + '\n\n';
+  }
+  if (out.replace(/\s/g, '').length >= 40) return { text: out.trim(), images: [] };
+  const files = [];
+  for (let i = 1; i <= Math.min(pdf.numPages, 4); i++) {
+    const pg = await pdf.getPage(i); const vp = pg.getViewport({ scale: 1.6 });
+    const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+    await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    const b = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+    files.push(new File([b], file.name.replace(/\.pdf$/i, '') + ' hal ' + i + '.jpg', { type: 'image/jpeg' }));
+  }
+  return { text: '', images: files };
+}
+async function addFiles(list) {
+  const bad = [], notes = [], lim = imgLimits || EXT_LIMITS;
+  for (const f of [...list]) {
+    const m = f.name.match(/\.([a-z0-9]+)$/i), ext = m ? m[1].toLowerCase() : '';
+    if ((f.type || '').startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+      if (!lim.mediaTypes.includes(f.type)) { bad.push(f.name + ' (jenis gambar tidak didukung)'); continue; }
+      if (f.size > lim.maxInputBytes) { bad.push(f.name + ' (terlalu besar)'); continue; }
+      if (imgs.length >= lim.maxCount) { bad.push(f.name + ' (batas ' + lim.maxCount + ' foto tercapai)'); continue; }
+      imgs.push({ file: f, url: URL.createObjectURL(f) });
+    } else if (['pdf', 'docx', 'txt', 'md', 'csv'].includes(ext)) {
+      if (f.size > 25 * 1024 * 1024) { bad.push(f.name + ' (terlalu besar)'); continue; }
+      aimsg('Membaca ' + f.name + '…');
+      try {
+        let text = '', extra = [];
+        if (ext === 'pdf') { const r = await pdfText(f); text = r.text; extra = r.images; }
+        else if (ext === 'docx') text = await docxText(f);
+        else text = await f.text();
+        text = String(text).replace(/\u0000/g, '').trim();
+        if (text) {
+          docs.push({ name: f.name, text: text.slice(0, DOC_MAX), chars: Math.min(text.length, DOC_MAX) });
+          if (text.length > DOC_MAX) notes.push(f.name + ' dipotong sampai ' + DOC_MAX.toLocaleString('id-ID') + ' karakter');
+        }
+        for (const x of extra) if (imgs.length < lim.maxCount) imgs.push({ file: x, url: URL.createObjectURL(x) });
+        if (!text && extra.length) notes.push(f.name + ' berupa gambar, halaman awalnya dijadikan foto');
+        if (!text && !extra.length) bad.push(f.name + ' (tidak ada teks yang bisa dibaca)');
+      } catch (e) {
+        bad.push(f.name + (ext === 'pdf' ? ' (PDF butuh internet untuk dibaca, atau berkasnya rusak)' : ' (tidak bisa dibaca)'));
+      }
+    } else if (ext === 'doc') {
+      bad.push(f.name + ' (format .doc lama, simpan ulang sebagai .docx)');
+    } else {
+      bad.push(f.name + ' (jenis berkas tidak didukung)');
+    }
+  }
+  renderThumbs(); renderDocs();
+  const parts = [];
+  if (notes.length) parts.push(notes.join('; ') + '.');
+  if (bad.length) parts.push('Tidak ditambahkan: ' + bad.join('; ') + '.');
+  aimsg(parts.join(' '), bad.length ? 'err' : '');
+}
+async function openChatbot() {
+  const text = buildPrompt($('#catatan').value.trim());
+  const box = $('#promptbox');
+  const cp = (navigator.clipboard && navigator.clipboard.writeText) ? navigator.clipboard.writeText(text) : Promise.reject(new Error('no clipboard'));
+  window.open($('#chatbot').value, '_blank', 'noopener');
+  try {
+    await cp; box.hidden = true;
+    aimsg('Perintah sudah disalin dan chatbot dibuka di tab baru. Tempel perintahnya di sana, lampirkan foto bila ada, lalu kirim. Jika tab tidak terbuka, buka sendiri chatbot-nya.', 'ok');
+  } catch (e) {
+    box.value = text; box.hidden = false; box.focus(); box.select();
+    aimsg('Salin otomatis tidak diizinkan. Teks perintah sudah dipilih: tekan Ctrl+C (atau Salin), lalu tempel di chatbot.', 'err');
+  }
 }
 
 function applyPasted() {
@@ -840,12 +972,12 @@ function init() {
     lastProv = p;
     const ext = p === 'gemini' || p === 'openai';
     $('#opt-ext').hidden = !ext; $('#opt-base').hidden = p !== 'openai'; $('#opt-search').hidden = p !== 'gemini';
-    $('#opt-manual').hidden = p !== 'manual'; $('#btn-gen').hidden = p === 'manual';
+    $('#opt-manual').hidden = p !== 'manual'; $('#manual-actions').hidden = p !== 'manual'; $('#btn-gen').hidden = p === 'manual';
     if (ext) { const sv = cfg.model[p]; $('#model').value = (sv && sv !== 'gemini-2.5-flash') ? sv : DEF[p]; }
     imgLimits = (p === 'claude' && claudeLimits) ? claudeLimits : EXT_LIMITS;
-    fi.accept = imgLimits.mediaTypes.join(',');
+    fi.accept = imgLimits.mediaTypes.join(',') + ',.pdf,.docx,.txt,.md,.csv,application/pdf';
     $('#drop-wrap').hidden = false; renderThumbs();
-    $('#drop-hint').textContent = p === 'manual' ? 'Foto hanya disimpan di halaman ini. Tekan Salin pada foto, lalu tempel di chatbot.' : 'JPG, PNG, WebP, atau GIF. Sampai ' + imgLimits.maxCount + ' foto, satu halaman per foto.';
+    $('#drop-hint').textContent = 'Foto (JPG, PNG, WebP, GIF), PDF, Word (.docx), atau teks (.txt). Teks dari berkas dibaca di perangkat ini.' + (p === 'manual' ? ' Tekan Salin pada foto untuk menempelnya di chatbot.' : '');
     saveCfg();
   }
   $('#baseurl').value = cfg.base || ''; $('#websearch').checked = cfg.search !== false; $('#remember').checked = !!cfg.remember; $('#apikey').value = cfg.remember ? (cfg.key || '') : '';
@@ -853,6 +985,8 @@ function init() {
   $('#prov').addEventListener('change', applyProv);
 
   $('#thumbs').addEventListener('click', e => { const c = e.target.closest('[data-cp]'); if (c) copyImage(imgs[+c.dataset.cp]); });
+  $('#docs').addEventListener('click', e => { const b = e.target.closest('[data-rd]'); if (!b) return; docs.splice(+b.dataset.rd, 1); renderDocs(); });
+  $('#btn-ai-manual').addEventListener('click', openChatbot);
   $('#btn-copy').addEventListener('click', copyPrompt);
   $('#btn-apply').addEventListener('click', applyPasted);
   const fill = () => {
