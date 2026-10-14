@@ -224,9 +224,10 @@ input[type="text"]:focus,textarea:focus{outline:none;border-color:var(--accent);
       </div>
       <p class="ainote" id="ai-note" hidden></p>
       <details class="keybox" id="keybox" hidden>
-        <summary>Pakai kunci API sendiri</summary>
-        <p class="hint">Untuk berkas HTML yang dibuka di luar Claude. Kunci dikirim langsung ke Anthropic dan tidak masuk ke isian RPP. Jangan isi kunci di halaman yang Anda bagikan ke orang lain.</p>
-        <div class="fld"><label for="f-apikey">Kunci API Anthropic</label><input id="f-apikey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-..."></div>
+        <summary>Pakai kunci API Gemini sendiri</summary>
+        <p class="hint">Untuk berkas HTML yang dibuka di luar Claude. Kunci dikirim langsung ke Google Gemini dan tidak masuk ke isian RPP. Buat kunci di aistudio.google.com/apikey. Jangan isi kunci di halaman yang Anda bagikan ke orang lain.</p>
+        <div class="fld"><label for="f-apikey">Kunci API Gemini</label><input id="f-apikey" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..."></div>
+        <div class="fld"><label for="f-model">Model Gemini</label><input id="f-model" type="text" autocomplete="off" spellcheck="false" value="gemini-3.8-flash"><span class="hint">Ganti hanya jika Google menghentikan model ini.</span></div>
         <label class="chk"><input type="checkbox" id="f-remember"> Ingat kunci di browser ini</label>
       </details>
       <div class="ai-extra">
@@ -680,20 +681,30 @@ const claudeUse=name=>{ try{ return (window.claude&&window.claude.use)?window.cl
 const samplePromise=claudeUse('sample');
 const dlPromise=claudeUse('downloads');
 const STANDALONE=!window.claude;
-const KEY_STORE='rpp-mendalam-apikey-v1';
-const MODEL='claude-sonnet-5-5';
-let apiKey='';
-try{ apiKey=localStorage.getItem(KEY_STORE)||''; }catch(e){}
+const KEY_STORE='rpp-mendalam-gkey-v1';
+const MODEL_STORE='rpp-mendalam-gmodel-v1';
+const DEFAULT_MODEL='gemini-3.8-flash';
+let apiKey='', gModel=DEFAULT_MODEL;
+try{
+  localStorage.removeItem('rpp-mendalam-apikey-v1');
+  apiKey=localStorage.getItem(KEY_STORE)||'';
+  gModel=localStorage.getItem(MODEL_STORE)||DEFAULT_MODEL;
+}catch(e){}
+$('#f-model').value=gModel;
+$('#f-model').addEventListener('input',e=>{
+  gModel=e.target.value.trim()||DEFAULT_MODEL;
+  try{ localStorage.setItem(MODEL_STORE,gModel); }catch(err){}
+});
 function setNote(msg){ const el=$('#ai-note'); el.textContent=msg||''; el.hidden=!msg; }
 if(STANDALONE){
   $('#keybox').hidden=false;
   if(apiKey){ $('#f-apikey').value=apiKey; $('#f-remember').checked=true; }
-  setNote(apiKey?'Berkas ini memakai kunci API Anda untuk membuat RPP.':'AI bawaan hanya aktif saat halaman dibuka di Claude. Di berkas ini, isi kunci API Anda di bagian "Pakai kunci API sendiri", atau buka halaman ini lewat tautan di Claude.');
+  setNote(apiKey?'Berkas ini memakai kunci API Gemini Anda untuk membuat RPP.':'Isi kunci API Gemini Anda di bagian "Pakai kunci API Gemini sendiri" di bawah, lalu tekan tombol AI.');
 }
 $('#f-apikey').addEventListener('input',e=>{
   apiKey=e.target.value.trim();
   try{ if($('#f-remember').checked) localStorage.setItem(KEY_STORE,apiKey); }catch(err){}
-  if(STANDALONE) setNote(apiKey?'Berkas ini memakai kunci API Anda untuk membuat RPP.':'AI bawaan hanya aktif saat halaman dibuka di Claude. Isi kunci API Anda di bagian "Pakai kunci API sendiri".');
+  if(STANDALONE) setNote(apiKey?'Berkas ini memakai kunci API Gemini Anda untuk membuat RPP.':'Isi kunci API Gemini Anda di bagian "Pakai kunci API Gemini sendiri" di bawah, lalu tekan tombol AI.');
 });
 $('#f-remember').addEventListener('change',e=>{
   try{ if(e.target.checked) localStorage.setItem(KEY_STORE,apiKey); else localStorage.removeItem(KEY_STORE); }catch(err){}
@@ -722,21 +733,24 @@ async function shrinkImg(blob){
 }
 function blobB64(blob){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]); r.onerror=()=>rej(r.error); r.readAsDataURL(blob); }); }
 async function callApi(key,prompt,imgs,signal){
-  const content=[];
+  const parts=[];
   for(const b of imgs){
     const s=await shrinkImg(b);
-    if(s.size>4800000||IMG_TYPES.indexOf(s.type)<0) continue;
-    content.push({type:'image',source:{type:'base64',media_type:s.type,data:await blobB64(s)}});
+    if(s.size>10000000||['image/jpeg','image/png','image/webp'].indexOf(s.type)<0) continue;
+    parts.push({inline_data:{mime_type:s.type,data:await blobB64(s)}});
   }
-  content.push({type:'text',text:prompt});
+  parts.push({text:prompt});
   let res;
   try{
-    res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:signal,headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:MODEL,max_tokens:8000,messages:[{role:'user',content:content}]})});
+    res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(gModel||DEFAULT_MODEL)+':generateContent',{method:'POST',signal:signal,headers:{'content-type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{role:'user',parts:parts}],generationConfig:{responseMimeType:'application/json',maxOutputTokens:16384}})});
   }catch(e){ if(e&&e.name==='AbortError') throw {code:'cancelled'}; throw {code:'network'}; }
   const j=await res.json().catch(()=>null);
   if(!res.ok) throw {code:'api_'+res.status,msg:j&&j.error&&j.error.message};
-  if(j.stop_reason==='max_tokens') throw {code:'invalid_json'};
-  return parseJson((j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join(''));
+  if(j&&j.promptFeedback&&j.promptFeedback.blockReason) throw {code:'refused'};
+  const cand=j&&j.candidates&&j.candidates[0];
+  if(!cand||!cand.content||!cand.content.parts) throw {code:'empty_completion'};
+  if(cand.finishReason==='MAX_TOKENS') throw {code:'invalid_json'};
+  return parseJson(cand.content.parts.map(p=>p.text||'').join(''));
 }
 const SCHEMA={peserta:'teks',materi:'teks',dpl:[1,3],cp:'teks',lintas:'teks',tujuan:'teks',topik:'teks',pedagogis:'teks',kemitraan:'teks',lingkungan:'teks',digital:'teks',
   awalPrinsip:'teks',awal:['langkah'],pahamPrinsip:'teks',paham:['langkah'],aplikPrinsip:'teks',aplik:['langkah'],refleksPrinsip:'teks',refleks:['langkah'],penutupPrinsip:'teks',penutup:['langkah'],
@@ -786,9 +800,10 @@ const AI_ERR={
   prompt_too_large:'Isian terlalu panjang. Persingkat topik atau catatan, atau kurangi materi.',
   image_rejected:'Salah satu gambar ditolak. Hapus gambar itu lalu coba lagi.',
   images_unavailable:'Gambar tidak bisa dikirim di tampilan ini. Hapus foto dan unggah teks saja.',
-  network:'Tidak bisa terhubung ke Anthropic. Periksa koneksi internet Anda.',
+  network:'Tidak bisa terhubung ke Google Gemini. Periksa koneksi internet Anda.',
   api_401:'Kunci API ditolak. Periksa kunci Anda lalu coba lagi.',
-  api_403:'Kunci API tidak punya izin untuk permintaan ini.',
+  api_403:'Kunci API tidak punya izin untuk permintaan ini, atau layanan belum aktif untuk akun Anda.',
+  api_404:'Model tidak ditemukan. Periksa nama model di bagian kunci API.',
   api_429:'Batas pemakaian kunci API tercapai. Coba lagi beberapa saat lagi.',
   api_413:'Isian terlalu besar. Kurangi jumlah atau ukuran materi.'
 };
@@ -796,7 +811,7 @@ let ctl=null;
 async function runAI(){
   const sample=await samplePromise;
   if(!sample&&!apiKey){
-    if(STANDALONE){ setStatus('Isi kunci API Anda dulu, di bagian "Pakai kunci API sendiri" di bawah tombol.','err'); const kb=$('#keybox'); kb.open=true; $('#f-apikey').focus(); }
+    if(STANDALONE){ setStatus('Isi kunci API Gemini Anda dulu, di bagian "Pakai kunci API Gemini sendiri" di bawah tombol.','err'); const kb=$('#keybox'); kb.open=true; $('#f-apikey').focus(); }
     else setStatus('AI tidak tersedia di tampilan ini. Buka halaman ini langsung di claude.ai.','err');
     return;
   }
