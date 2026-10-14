@@ -118,6 +118,7 @@ body{margin:0}
 select{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:.5rem .65rem;line-height:1.5}
 .chk{display:flex;gap:8px;align-items:flex-start;font-size:.92rem}
 .chk input{margin-top:.3rem;accent-color:var(--accent)}
+.thumb .cp{top:auto;bottom:3px;left:3px;right:3px;width:auto;height:22px;border-radius:6px;font-size:12px;font-weight:600}
 </style></head><body>
 
 <header class="bar"><div class="bar-in">
@@ -161,7 +162,7 @@ select{width:100%;border:1px solid var(--line);background:var(--surface);border-
         <div id="opt-manual" style="display:flex;flex-direction:column;gap:12px" hidden>
           <ol class="sub" style="margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:2px">
             <li>Isi catatan topik atau teks referensi di bawah (opsional), lalu tekan "Salin perintah untuk AI".</li>
-            <li>Buka chatbot yang Anda punya (Gemini, ChatGPT, atau Claude), tempel perintahnya, lampirkan foto materi, lalu kirim.</li>
+            <li>Buka chatbot yang Anda punya (Gemini, ChatGPT, atau Claude), tempel perintahnya, lampirkan foto materi (foto yang Anda unggah di bawah bisa disalin dengan tombol Salin), lalu kirim.</li>
             <li>Salin jawaban AI, tempel di kotak "Jawaban dari AI", lalu tekan "Isi formulir dari jawaban".</li>
           </ol>
           <div class="row"><button type="button" class="btn" id="btn-copy">Salin perintah untuk AI</button></div>
@@ -591,7 +592,7 @@ async function doDownload() {
 let sampleFn = null, imgLimits = null, imgs = [], ctl = null, running = false, prevState = null;
 const aimsg = (t, k) => { const el = $('#aimsg'); el.textContent = t || ''; el.className = 'aimsg' + (k ? ' ' + k : ''); };
 function renderThumbs() {
-  $('#thumbs').innerHTML = imgs.map((im, i) => `<div class="thumb"><img src="${im.url}" alt="Foto ${i + 1}"><button type="button" data-rm="${i}" aria-label="Hapus foto ${i + 1}">×</button></div>`).join('');
+  $('#thumbs').innerHTML = imgs.map((im, i) => `<div class="thumb"><img src="${im.url}" alt="Foto ${i + 1}">${PROV() === 'manual' ? `<button type="button" class="cp" data-cp="${i}">Salin</button>` : ''}<button type="button" data-rm="${i}" aria-label="Hapus foto ${i + 1}">×</button></div>`).join('');
 }
 function addFiles(list) {
   if (!imgLimits) return;
@@ -754,6 +755,19 @@ function applyPasted() {
   const cat = str(out.catatan);
   aimsg('RPP sudah diisi dari jawaban AI. Periksa tiap bagian, lalu buka Pratinjau atau unduh.' + (cat ? ' Catatan AI: ' + cat : ''), 'ok');
 }
+async function copyImage(im) {
+  if (!im) return;
+  try {
+    if (!navigator.clipboard || !window.ClipboardItem) throw new Error('no clipboard image');
+    const img = await new Promise((res, rej) => { const x = new Image(); x.onload = () => res(x); x.onerror = rej; x.src = im.url; });
+    const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    aimsg('Foto disalin. Tempel (Ctrl+V) di kotak chat chatbot.', 'ok');
+  } catch (e) { aimsg('Foto tidak bisa disalin otomatis di perangkat ini. Lampirkan fotonya langsung dari galeri atau folder di chatbot.', 'err'); }
+}
 async function copyPrompt() {
   const text = buildPrompt($('#catatan').value.trim());
   const box = $('#promptbox');
@@ -830,14 +844,15 @@ function init() {
     if (ext) { const sv = cfg.model[p]; $('#model').value = (sv && sv !== 'gemini-2.5-flash') ? sv : DEF[p]; }
     imgLimits = (p === 'claude' && claudeLimits) ? claudeLimits : EXT_LIMITS;
     fi.accept = imgLimits.mediaTypes.join(',');
-    $('#drop-wrap').hidden = (p === 'manual');
-    $('#drop-hint').textContent = 'JPG, PNG, WebP, atau GIF. Sampai ' + imgLimits.maxCount + ' foto, satu halaman per foto.';
+    $('#drop-wrap').hidden = false; renderThumbs();
+    $('#drop-hint').textContent = p === 'manual' ? 'Foto hanya disimpan di halaman ini. Tekan Salin pada foto, lalu tempel di chatbot.' : 'JPG, PNG, WebP, atau GIF. Sampai ' + imgLimits.maxCount + ' foto, satu halaman per foto.';
     saveCfg();
   }
   $('#baseurl').value = cfg.base || ''; $('#websearch').checked = cfg.search !== false; $('#remember').checked = !!cfg.remember; $('#apikey').value = cfg.remember ? (cfg.key || '') : '';
   ['#apikey', '#model', '#baseurl', '#websearch', '#remember'].forEach(s => $(s).addEventListener('change', saveCfg));
   $('#prov').addEventListener('change', applyProv);
 
+  $('#thumbs').addEventListener('click', e => { const c = e.target.closest('[data-cp]'); if (c) copyImage(imgs[+c.dataset.cp]); });
   $('#btn-copy').addEventListener('click', copyPrompt);
   $('#btn-apply').addEventListener('click', applyPasted);
   const fill = () => {
