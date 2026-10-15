@@ -14,6 +14,17 @@
 <style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
 </head>
 <body>
+<div id="lock" class="lock" hidden>
+  <div class="lockbox">
+    <h2>Aktivasi aplikasi</h2>
+    <p>Aplikasi ini perlu kunci aktivasi dari pengelola. Kirimkan <b>kode perangkat</b> di bawah ini, lalu tempel kunci yang Anda terima.</p>
+    <div class="fld"><label for="lk-code">Kode perangkat</label><input id="lk-code" type="text" readonly></div>
+    <div class="lkrow"><button type="button" class="btn quiet" id="lk-copy">Salin kode</button><a class="btn quiet" id="lk-wa" target="_blank" rel="noopener">Kirim via WhatsApp</a></div>
+    <div class="fld"><label for="lk-key">Kunci aktivasi</label><textarea id="lk-key" rows="3" spellcheck="false" autocomplete="off" placeholder="Tempel kunci di sini"></textarea></div>
+    <p class="lkerr" id="lk-err" role="alert" hidden></p>
+    <button type="button" class="btn" id="lk-go">Aktifkan</button>
+  </div>
+</div>
 
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -114,6 +125,12 @@ input[type="text"]:focus,input[type="password"]:focus,textarea:focus{outline:non
 .keybox summary{cursor:pointer;font-weight:700;font-size:14px}
 .keybox[open]{display:flex;flex-direction:column;gap:12px}
 .keybox[open] summary{margin-bottom:-2px}
+.lock{position:fixed;inset:0;z-index:100;background:var(--bg);overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px}
+.lockbox{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:22px 20px;max-width:460px;width:100%;display:flex;flex-direction:column;gap:14px;margin-top:4vh}
+.lockbox h2{margin:0;font-size:21px}.lockbox p{margin:0;font-size:14.5px;line-height:1.5}
+.lkrow{display:flex;gap:10px;flex-wrap:wrap}.lkrow .btn{flex:1 1 140px;text-decoration:none}
+.lkerr{color:#c0392b;font-weight:600}
+#lk-code{font-weight:700;letter-spacing:.06em;font-size:17px}
 .imodal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
 .imbox{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px}
 .imbox h2{margin:0;font-size:18px}
@@ -940,6 +957,55 @@ refreshAll();
   document.getElementById('im-close').addEventListener('click',function(){ modal.hidden=true; });
   modal.addEventListener('click',function(e){ if(e.target===modal) modal.hidden=true; });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') modal.hidden=true; });
+})();
+</script>
+<script>
+(function(){
+  var PUB={"key_ops":["verify"],"ext":true,"kty":"EC","x":"Yq41AjzR5XGu7YfxB69Yg8t9tm3nQTRTcEOK3e6zBG4","y":"U8ztm96fYGLypnF_oTdCBx4NbiquJNvWfCsI6CFsFcE","crv":"P-256"};
+  var lock=document.getElementById('lock'); if(!lock) return;
+  var $=function(i){return document.getElementById(i);};
+  var DKEY='rpp-mendalam-device-v1', AKEY='rpp-mendalam-aktivasi-v1';
+  function get(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
+  function set(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  function devCode(){
+    var c=get(DKEY);
+    if(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(c)) return c;
+    var al='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',b=new Uint8Array(12);crypto.getRandomValues(b);
+    var s='';for(var i=0;i<12;i++){s+=al[b[i]%al.length];if(i%4==3&&i<11)s+='-';}
+    set(DKEY,s);return s;
+  }
+  function b64u(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var r=atob(s),u=new Uint8Array(r.length);for(var i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u;}
+  function utf8(s){return new TextEncoder().encode(s);}
+  var pubKey=null;
+  async function verify(key,code){
+    try{
+      key=(key||'').replace(/\s+/g,'');
+      var p=key.split('.'); if(p.length!==2) return false;
+      var payload=new TextDecoder().decode(b64u(p[0]));
+      var parts=payload.split('|'); if(parts[0]!==code) return false;
+      if(!pubKey) pubKey=await crypto.subtle.importKey('jwk',PUB,{name:'ECDSA',namedCurve:'P-256'},false,['verify']);
+      return await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},pubKey,b64u(p[1]),utf8('rpp1|'+payload));
+    }catch(e){return false;}
+  }
+  var panes=[].slice.call(document.querySelectorAll('header.top, main'));
+  function setLocked(on){
+    lock.hidden=!on; document.documentElement.style.overflow=on?'hidden':'';
+    panes.forEach(function(el){ if(on) el.setAttribute('inert',''); else el.removeAttribute('inert'); });
+  }
+  if(!(window.crypto&&crypto.subtle)){ setLocked(true); $('lk-err').hidden=false; $('lk-err').textContent='Browser ini belum mendukung aktivasi. Buka lewat Chrome dengan alamat https://.'; return; }
+  var code=devCode();
+  $('lk-code').value=code;
+  $('lk-wa').href='https://wa.me/?text='+encodeURIComponent('Minta kunci aktivasi aplikasi Penyusun RPP Mendalam. Kode perangkat saya: '+code);
+  setLocked(true);
+  verify(get(AKEY),code).then(function(ok){ if(ok) setLocked(false); });
+  $('lk-copy').addEventListener('click',function(){
+    var b=this; (navigator.clipboard?navigator.clipboard.writeText(code):Promise.reject()).then(function(){b.textContent='Tersalin';},function(){$('lk-code').select();b.textContent='Salin manual';});
+  });
+  $('lk-go').addEventListener('click',async function(){
+    var k=$('lk-key').value, err=$('lk-err');
+    if(await verify(k,code)){ set(AKEY,k.replace(/\s+/g,'')); err.hidden=true; setLocked(false); }
+    else { err.hidden=false; err.textContent='Kunci tidak cocok. Pastikan kunci dibuat untuk kode perangkat ini dan disalin utuh.'; }
+  });
 })();
 </script>
 <script>if("serviceWorker" in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
