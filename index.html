@@ -19,7 +19,7 @@
     <h2>Aktivasi aplikasi</h2>
     <p>Aplikasi ini perlu kunci aktivasi dari pengelola. Kirimkan <b>kode perangkat</b> di bawah ini, lalu tempel kunci yang Anda terima.</p>
     <div class="fld"><label for="lk-code">Kode perangkat</label><input id="lk-code" type="text" readonly></div>
-    <div class="lkrow"><button type="button" class="btn quiet" id="lk-copy">Salin kode</button><a class="btn quiet" id="lk-wa" target="_blank" rel="noopener">Kirim via WhatsApp</a></div>
+    <div class="lkrow"><button type="button" class="btn quiet" id="lk-copy">Salin kode</button><a class="btn quiet" id="lk-wa" target="_blank" rel="noopener">Kirim kode via WhatsApp</a></div>
     <div class="fld"><label for="lk-key">Kunci aktivasi</label><textarea id="lk-key" rows="3" spellcheck="false" autocomplete="off" placeholder="Tempel kunci di sini"></textarea></div>
     <p class="lkerr" id="lk-err" role="alert" hidden></p>
     <button type="button" class="btn" id="lk-go">Aktifkan</button>
@@ -132,7 +132,7 @@ input[type="text"]:focus,input[type="password"]:focus,textarea:focus{outline:non
 .lkerr{color:#c0392b;font-weight:600}
 #lk-code{font-weight:700;letter-spacing:.06em;font-size:17px}
 .imodal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
-.imbox{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px}
+.imbox{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:92vh;overflow:auto;display:flex;flex-direction:column;gap:12px}
 .imbox h2{margin:0;font-size:18px}
 .imbox ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
 .imbox p{margin:0;font-size:14.5px}
@@ -207,6 +207,7 @@ input[type="text"]:focus,input[type="password"]:focus,textarea:focus{outline:non
         <button type="button" id="tab-edit" aria-pressed="true">Susun</button>
         <button type="button" id="tab-view" aria-pressed="false">Pratinjau</button>
       </div>
+      <button type="button" class="btn quiet" id="btn-key">Cara dapat kunci API</button>
       <button type="button" class="btn quiet" id="btn-install" hidden>Pasang aplikasi</button>
       <button type="button" class="btn" id="btn-docx">Unduh Word (.docx)</button>
     </div>
@@ -944,7 +945,7 @@ refreshAll();
   btn.hidden=false;
   window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); dp=e; });
   window.addEventListener('appinstalled',function(){ btn.hidden=true; dp=null; });
-  function show(html){ body.innerHTML=html; modal.hidden=false; document.getElementById('im-close').focus(); }
+  function show(html){ document.getElementById('im-t').textContent='Pasang aplikasi di HP'; body.innerHTML=html; modal.hidden=false; document.getElementById('im-close').focus(); }
   btn.addEventListener('click',function(){
     if(dp){ dp.prompt(); dp.userChoice.then(function(){ dp=null; }).catch(function(){}); return; }
     var ua=navigator.userAgent||'';
@@ -957,6 +958,29 @@ refreshAll();
   document.getElementById('im-close').addEventListener('click',function(){ modal.hidden=true; });
   modal.addEventListener('click',function(e){ if(e.target===modal) modal.hidden=true; });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') modal.hidden=true; });
+})();
+</script>
+<script>
+(function(){
+  var b=document.getElementById('btn-key'),modal=document.getElementById('imodal'),body=document.getElementById('im-body'),t=document.getElementById('im-t');
+  if(!b) return;
+  b.addEventListener('click',function(){
+    t.textContent='Cara membuat kunci API Gemini';
+    body.innerHTML='<p>Kunci API adalah kode rahasia dari Google agar fitur "Buat RPP dengan AI" bisa bekerja. Setiap guru membuat kunci sendiri.</p>'
+     +'<ol><li>Ketuk tombol <b>Buka Google AI Studio</b> di bawah. Masuk dengan akun Google (Gmail) Anda.</li>'
+     +'<li>Jika diminta, setujui persyaratan yang muncul.</li>'
+     +'<li>Ketuk tombol <b>Create API key</b> (Buat kunci API). Jika diminta memilih proyek, pilih proyek yang ada atau buat proyek baru.</li>'
+     +'<li>Tunggu kunci muncul (diawali <b>AIza</b>), lalu ketuk ikon <b>salin</b> di sampingnya.</li>'
+     +'<li>Kembali ke aplikasi ini, ketuk <b>Buka Pengaturan AI</b> di bawah, lalu <b>tempel</b> kunci di kolom "Kunci API Gemini".</li>'
+     +'<li>Isi topik pembelajaran, lalu ketuk <b>Buat RPP dengan AI</b>.</li></ol>'
+     +'<p><b>Penting:</b> jangan bagikan kunci Anda ke orang lain, dan jangan centang "Ingat kunci" di HP yang dipakai bergantian. Pemakaian kunci mengikuti ketentuan dan tarif Google. Tampilan di situs Google bisa sedikit berbeda dari langkah di atas.</p>'
+     +'<a class="btn quiet" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="text-decoration:none">Buka Google AI Studio</a>'
+     +'<button type="button" class="btn quiet" id="im-goset">Buka Pengaturan AI</button>';
+    modal.hidden=false;
+    document.getElementById('im-goset').addEventListener('click',function(){
+      modal.hidden=true; var kb=document.getElementById('keybox'); if(kb){ kb.hidden=false; kb.open=true; kb.scrollIntoView({behavior:'smooth',block:'center'}); var f=document.getElementById('f-apikey'); if(f) setTimeout(function(){f.focus();},400); }
+    });
+  });
 })();
 </script>
 <script>
@@ -995,7 +1019,7 @@ refreshAll();
   if(!(window.crypto&&crypto.subtle)){ setLocked(true); $('lk-err').hidden=false; $('lk-err').textContent='Browser ini belum mendukung aktivasi. Buka lewat Chrome dengan alamat https://.'; return; }
   var code=devCode();
   $('lk-code').value=code;
-  $('lk-wa').href='https://wa.me/?text='+encodeURIComponent('Minta kunci aktivasi aplikasi Penyusun RPP Mendalam. Kode perangkat saya: '+code);
+  $('lk-wa').href='https://wa.me/6285251029809?text='+encodeURIComponent('Assalamualaikum, mohon kunci aktivasi aplikasi Penyusun RPP Mendalam. Kode perangkat saya: '+code);
   setLocked(true);
   verify(get(AKEY),code).then(function(ok){ if(ok) setLocked(false); });
   $('lk-copy').addEventListener('click',function(){
